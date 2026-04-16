@@ -25,7 +25,7 @@ func (c *Clock) Frame() uint64 { return c.frame }
 // Advance 推进一帧；仅应由 tick.Loop 或单测 Step 调用，避免多处自增。
 func (c *Clock) Advance() { c.frame++ }
 
-// LogicalMs 逻辑毫秒：frame * 1000 / TPS（整除，便于确定性回放）。
+// LogicalMs 已经运行了多久
 func (c *Clock) LogicalMs() int64 {
 	if c.tps <= 0 {
 		return 0

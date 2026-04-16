@@ -14,7 +14,7 @@ import (
 // Room 单局战斗隔离单元：玩家实体、阶段、独立 Clock/Loop。
 // 不依赖网络层；Gateway 只应持有 roomID 并转调 Manager/Room API。
 type Room struct {
-	id        string
+	id         string
 	maxPlayers int
 
 	mu      sync.RWMutex
@@ -176,6 +176,21 @@ func (r *Room) StartBattle(ctx context.Context, cal calc.Calculator) error {
 
 	r.mu.Lock()
 	r.phase = PhaseFighting
+	buffSub := tick.FuncSubscriber(func(c *clock.Clock) {
+		fr := c.Frame()
+		r.mu.RLock()
+		ents := make([]*entity.Entity, 0, len(r.players))
+		for _, e := range r.players {
+			ents = append(ents, e)
+		}
+		r.mu.RUnlock()
+		for _, e := range ents {
+			if e != nil {
+				e.TickBuffs(fr, cal)
+			}
+		}
+	})
+	loop.Add(buffSub)
 	if r.skillSys != nil {
 		r.skillSys.ResetForBattle()
 		loop.Add(r.skillSys)
