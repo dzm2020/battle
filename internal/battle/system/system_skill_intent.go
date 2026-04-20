@@ -74,7 +74,7 @@ func (s *SkillIntentSystem) tryCast(caster ecs.Entity, intent *component.CastInt
 		removeIntent()
 		return
 	}
-	if !validateSkillTargets(s.world, caster, intent.Target, sk) {
+	if !skill.ValidCastTargets(s.world, caster, intent.Target, sk) {
 		removeIntent()
 		return
 	}
@@ -97,32 +97,6 @@ func (s *SkillIntentSystem) tryCast(caster ecs.Entity, intent *component.CastInt
 	skill.ExecuteEffects(s.world, targets, sk, s.buffConfig)
 	startSkillCooldown(su, sk.ID, sk.CooldownFrames)
 	removeIntent()
-}
-
-func validateSkillTargets(w *ecs.World, caster ecs.Entity, primary ecs.Entity, sk skill.SkillConfig) bool {
-	switch sk.Target {
-	case skill.TargetSelf:
-		return true
-	case skill.TargetSingleEnemy:
-		return validEnemyPair(w, caster, primary)
-	case skill.TargetAllEnemySides:
-		_, ok := w.GetComponent(caster, &component.Team{})
-		return ok
-	default:
-		return false
-	}
-}
-
-func validEnemyPair(w *ecs.World, caster, target ecs.Entity) bool {
-	if target == 0 || caster == target {
-		return false
-	}
-	ca, ok1 := w.GetComponent(caster, &component.Team{})
-	tg, ok2 := w.GetComponent(target, &component.Team{})
-	if !ok1 || !ok2 {
-		return false
-	}
-	return ca.(*component.Team).Side != tg.(*component.Team).Side
 }
 
 func paySkillCost(su *component.SkillUser, sk skill.SkillConfig) bool {

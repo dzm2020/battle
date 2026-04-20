@@ -4,7 +4,8 @@
     "resource": 1,
     "cost": 25,
     "cooldownFrames": 60,
-    "target": 1,
+    "scope": 2,
+    "camp": 0,
     "castFrames": 0,
     "effects": [
       { "kind": 0, "amount": 50, "damageType": 1 }
@@ -15,7 +16,8 @@
     "resource": 0,
     "cost": 0,
     "cooldownFrames": 120,
-    "target": 2,
+    "scope": 6,
+    "camp": 0,
     "castFrames": 0,
     "effects": [
       { "kind": 2, "buffDefId": 1 }
@@ -26,7 +28,8 @@
     "resource": 1,
     "cost": 40,
     "cooldownFrames": 0,
-    "target": 0,
+    "scope": 1,
+    "camp": 0,
     "castFrames": 45,
     "effects": [
       { "kind": 1, "amount": 200 }

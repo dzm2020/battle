@@ -6,7 +6,7 @@ import (
 )
 
 func TestLoadCatalogConfigFromJSON(t *testing.T) {
-	const raw = `[{"id":7,"resource":0,"cost":0,"cooldownFrames":10,"target":0,"castFrames":0,"effects":[]}]`
+	const raw = `[{"id":7,"resource":0,"cost":0,"cooldownFrames":10,"scope":1,"camp":0,"castFrames":0,"effects":[]}]`
 	catalogConfig := NewCatalogConfig()
 	if err := LoadCatalogConfigFromJSON([]byte(strings.TrimSpace(raw)), catalogConfig); err != nil {
 		t.Fatal(err)

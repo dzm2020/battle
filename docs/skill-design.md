@@ -1,6 +1,6 @@
 # 技能系统设计说明
 
-本文描述第四阶段「可配置技能框架」的实现约定：静态模板 [skill.SkillConfig]、运行时组件、系统顺序、与 Buff/伤害链的衔接，以及 JSON/YAML 数据驱动方式。**实现以仓库源码为准**。
+本文描述第四阶段「可配置技能框架」的实现约定：静态模板 [skill.SkillConfig]、运行时组件、系统顺序、与 Buff/伤害链的衔接，以及 JSON/YAML 数据驱动方式。**实现以仓库源码为准**。目标选取的设计维度（范围 / 阵营 / 过滤规则等）可与仓库根目录 **skill_record.md** 对照阅读。
 
 ---
 
@@ -9,84 +9,97 @@
 - **数据驱动**：技能消耗、冷却、目标类型、效果列表完全由 [skill.CatalogConfig] 中的模板描述；可通过 [skill.LoadCatalogConfigFromJSON] / [skill.LoadCatalogConfigFromYAML] 加载，无需改代码即可增删技能（前提是逻辑已支持的 Effect 类型）。
 - **资源**：支持 **无 / 法力 / 怒气 / 能量** 四种消耗语义，对应 [component.SkillUser] 上的三个资源槽（无消耗时 **Cost 必须为 0**）。
 - **冷却**：按 **帧** 计数，存在 [component.SkillUser].CooldownRemaining；由 [CooldownSystem] 每帧递减。
-- **目标**：自身、单体敌方、**全体异阵营**（需 [component.Team] + [component.Health]）。
+- **目标**：按 [skill_record.md] 三维度在配置中写明 **`scope`**、**`camp`**、可选 **`pickRule`**，并配合 `maxTargets`、`aoeRadius`、Buff 条件。见 `internal/battle/skill/skill_target_spec.go` 与 [ResolveTargets]。
+- **refinement**：`maxTargets` 截断；`aoeRadius` 对 Cone/Circle/Line、Multi、全屏 与 `Transform2D` 做距离球过滤（为 0 时不做距离裁剪）；`requireBuffDefId` / `forbidBuffDefId` 在排序截断前过滤。
 - **瞬发 / 吟唱**：`CastFrames==0` 为瞬发；`CastFrames>0` 消耗资源当帧扣除，写入 [component.SkillCastState]，经过若干帧后结算效果并进入冷却。
 - **与 Buff**：效果条目 `EffectApplyBuff` 调用 [buff.ApplyBuff]，共享同一份 [buff.DefinitionConfig]。
 - **与伤害**：效果条目 `EffectDamage` 调用 [component.MergePendingDamage]，走既有 **Damage → Health → Death**。
 
-不在本文范围：**打断吟唱**、技能队列、弹道飞行、精确范围几何；可用玩法层不写 CastIntent 或扩展组件实现。
+不在本文范围：**打断吟唱**、技能队列、弹道飞行、精确扇形几何（当前无朝向；Cone 可与半径一起做近似）；可用玩法层不写 CastIntent 或扩展组件实现。
 
 ---
 
 ## 2. 静态模板：`skill.SkillConfig` / `skill.EffectConfig`
 
-核心类型见 `internal/battle/skill/skill_config.go`，字段均有中文注释。
+核心类型见 `internal/battle/skill/skill_config.go`。
 
 | 字段 | 含义摘要 |
 |------|-----------|
-| `ID` | 全局技能 ID，与施放意图、授予列表一致 |
+| `ID` | 全局技能 ID |
 | `Resource` / `Cost` | 资源类型与数值 |
 | `CooldownFrames` | 冷却帧长；从 **效果结算完毕** 的当帧写入冷却表 |
-| `Target` | `Self` / `SingleEnemy` / `AllEnemySides` |
+| **`scope`**（必填） | [TargetScope]，见下表；JSON 值为 **0 表示无效** |
+| **`camp`**（必填） | [CampRelation]，见下表；敌方为 **0** |
+| **`pickRule`** | [PickRule]，可选 |
+| **`aoeRadius`** | 球半径；与 Multi/几何范围等组合 |
+| **`campSide`** | 仅 `camp` = SpecificSide |
+| `maxTargets` | 排序后截断；随机默认次数；链式总人数上限 |
+| `chainJumps` | 链式额外跳跃 |
+| `requireBuffDefId` / `forbidBuffDefId` | Buff 模板过滤 |
 | `CastFrames` | 0 瞬发；>0 吟唱帧数 |
 | `Effects` | 有序效果列表 |
 
-**Effect 种类**：
+**TargetScope（`scope`）**
 
-| Kind | 行为 |
-|------|------|
-| `EffectDamage` | 对每个解析出的目标 `MergePendingDamage` |
-| `EffectHeal` | 对每个目标增加 `Health.Current`（封顶 Max） |
-| `EffectApplyBuff` | 对每个目标 `buff.ApplyBuff(..., BuffDefID)` |
+| 值 | 常量 | 含义 |
+|----|------|------|
+| 0 | — | **无效**，施放解析失败 |
+| 1 | `TargetScopeSelf` | 仅自身 |
+| 2 | `TargetScopeSingle` | 单体：主目标 + `camp` |
+| 3–5 | Cone / Circle / LineRect | 先按 `camp` 取候选，再按 `aoeRadius` + `Transform2D` 裁剪 |
+| 6 | `TargetScopeMulti` | 全场符合 `camp` 的多目标 |
+| 7 | `TargetScopeFullScreen` | 全场实体再按 `camp` 缩小 |
+| 8 | `TargetScopeChain` | 链式 |
+| 9 | `TargetScopeRandom` | 随机子集 |
+
+**CampRelation（`camp`）**：`0` 敌方 · `1` 友方含自身 · `2` 友方不含自身 · `3` 不限阵营 · `4` 指定 Side（配合 `campSide`）。
+
+**PickRule（`pickRule`）**：`0` 无 · `1` 最近 · `2` 最远 · `3` 当前血量升序 · `4` 血量百分比升序 · `5` 攻击力最高。
+
+**组合示例**：「群体治疗、友方、血量百分比最低 5 个」→ `scope=6`、`camp=1`、`pickRule=4`、`maxTargets=5`。
+
+**Effect 种类**：同前（伤害 / 治疗 / 挂 Buff）。
 
 ---
 
-## 3. 运行时组件（`internal/battle/component`）
+## 3. 目标解析与施法校验
+
+- [skill.ResolveTargets]：**候选（scope×camp×空间）→ Buff 过滤 → PickRule 排序 → maxTargets**。
+- [skill.ValidCastTargets]：意图阶段；`scope==0` 的配置恒失败。
+
+---
+
+## 4. 运行时组件（`internal/battle/component`）
 
 | 组件 | 职责 |
 |------|------|
-| `Team` | `Side` 阵营；群体「敌方」筛选依赖施法者与目标的 Side 不等 |
-| `SkillUser` | `Mana/Rage/Energy`、`GrantedSkillIDs`、`CooldownRemaining` |
-| `CastIntent` | 外部写入：`SkillID` + `Target`（主目标）；由 [SkillSystem] 消费并移除 |
-| `SkillCastState` | 吟唱中：`SkillID`、`PrimaryTarget`、`FramesLeft` |
-
-施法者实体建议同时具备 `SkillUser`（与资源、冷却相关）及必要时 `Team`（阵营技能）。
+| `Team` | `Side` 阵营 |
+| `SkillUser` | 资源、授予列表、冷却 map |
+| `CastIntent` | `SkillID` + 主目标；由 [SkillIntentSystem] 消费 |
+| `SkillCastState` | 吟唱状态 |
+| `Transform2D` | 可选坐标；用于 `aoeRadius` 与最近/最远 |
 
 ---
 
-## 4. 系统顺序与单帧语义
-
-[AddCombatSystems] 注册顺序为：
+## 5. 系统顺序与单帧语义
 
 ```
-BuffSystem → CooldownSystem → SkillSystem → DamageSystem → HealthSystem → DeathSystem
+BuffSystem → CooldownSystem → SkillChannelSystem → SkillIntentSystem → DamageSystem → HealthSystem → DeathSystem
 ```
 
-- **BuffSystem**：DoT、属性修正等先于技能，本帧已有的 `PendingDamage` / `StatModifiers` 仍有效。
-- **CooldownSystem**：对所有 `SkillUser` 的冷却表 **先** 递减，便于「上一帧结束冷却」的技能在本帧 **[SkillSystem]** 中可用。
-- **SkillSystem**：  
-  1. **advanceChannels**：吟唱 `FramesLeft` 递减；归零当帧 **结算效果 + 写入冷却**，移除 `SkillCastState`。  
-  2. **processIntents**：处理 `CastIntent`（眩晕由 [action.CanAct] 拦截）；校验授予、冷却、目标、资源；瞬发直接 `ExecuteEffects`；吟唱则写入 `SkillCastState`（**资源在发起吟唱当帧扣除**）。
-- **DamageSystem**：合并技能与本帧其它来源的 `PendingDamage`。
+（语义同前：先吟唱结算，再处理意图。）
 
 ---
 
-## 5. API 使用流程（玩法层）
+## 6. API 使用流程（玩法层）
 
-1. `component.RegisterCombatTypesWorld(w)`（含技能与 Team 等新组件）。
-2. 构造 `buff.DefinitionConfig`、`skill.CatalogConfig`，加载 JSON/YAML。
-3. `system.AddCombatSystems(w, buffConfig, skillConfig)`。
-4. 给单位添加 `Team`、`SkillUser`（填充资源与 `GrantedSkillIDs`）、`Health` 等。
-5. 施放：`AddComponent(caster, &CastIntent{SkillID, Target})`，再 `world.Update(dt)`。
-6. 下一帧 Intent 应已被移除；吟唱则等待 `SkillCastState` 清空后再发起新 Intent（建议玩法层禁用重叠）。
+（与前一版相同：注册组件 → 加载配置 → AddCombatSystems → 添加单位 → 写 CastIntent → Update。）
 
 ---
 
-## 6. JSON / YAML 示例
+## 7. JSON 示例
 
-以下示例与测试用例一致，可作为配置起点（**枚举值为数值**，与 Go 中 `iota` 顺序一致）。
-
-### 6.1 JSON 数组（单体法术）
+### 单体法术（敌方单体）
 
 ```json
 [
@@ -95,27 +108,40 @@ BuffSystem → CooldownSystem → SkillSystem → DamageSystem → HealthSystem 
     "resource": 1,
     "cost": 30,
     "cooldownFrames": 2,
-    "target": 1,
+    "scope": 2,
+    "camp": 0,
     "castFrames": 0,
-    "effects": [
-      { "kind": 0, "amount": 40, "damageType": 1 }
-    ]
+    "effects": [{ "kind": 0, "amount": 40, "damageType": 1 }]
   }
 ]
 ```
 
-含义：`resource:1` 为法力；`target:1` 为单体敌方；`kind:0` 为伤害；`damageType:1` 为魔法（见 `component.DamageType`）。
+### 友方群体治疗（百分比最低 2 人）
 
-### 6.2 YAML
+```json
+{
+  "id": 11,
+  "resource": 0,
+  "cost": 0,
+  "cooldownFrames": 5,
+  "scope": 6,
+  "camp": 1,
+  "pickRule": 4,
+  "maxTargets": 2,
+  "castFrames": 0,
+  "effects": [{ "kind": 1, "amount": 20 }]
+}
+```
 
-结构与 JSON 相同，使用 [skill.LoadCatalogConfigFromYAML]，文件可为：
+### 全场敌方 AOE（示例）
 
 ```yaml
-- id: 11
+- id: 12
   resource: 0
   cost: 0
   cooldownFrames: 0
-  target: 2
+  scope: 6
+  camp: 0
   castFrames: 0
   effects:
     - kind: 0
@@ -123,34 +149,21 @@ BuffSystem → CooldownSystem → SkillSystem → DamageSystem → HealthSystem 
       damageType: 0
 ```
 
-`target:2` 表示 `TargetAllEnemySides`（全场异阵营，需施法者有 `Team`）。
-
 ---
 
-## 7. 验收对照（record 第四阶段）
+## 8. 验收对照
 
 | 条目 | 实现要点 |
 |------|-----------|
-| 配置结构 | [skill.SkillConfig] + [skill.EffectConfig]，JSON/YAML 加载 |
-| SkillUser | 资源、授予列表、冷却 map |
-| SkillSystem | CastIntent + SkillCastState + ExecuteEffects |
-| 冷却 | [CooldownSystem] |
-| 资源 | Mana/Rage/Energy + ResourceType |
-| Buff 联动 | EffectApplyBuff |
-| 瞬发 / 吟唱 | CastFrames 0 / >0 |
-| 群体 | TargetAllEnemySides + Team |
+| 配置 | [SkillConfig]：`scope`/`camp`/`pickRule` + ResolveTargets |
+| 管线 | SkillChannelSystem + SkillIntentSystem |
 
 ---
 
-## 8. 相关源码索引
+## 9. 相关源码索引
 
 | 路径 | 说明 |
 |------|------|
-| `internal/battle/skill/skill_config.go` | 模板类型与枚举 |
-| `internal/battle/skill/catalog_config.go` | 模板配置表 |
-| `internal/battle/skill/skill_config_json.go` / `skill_config_yaml.go` | 加载 |
-| `internal/battle/skill/resolve.go` | 目标解析与效果执行 |
-| `internal/battle/component/skill.go` / `team.go` | 运行时组件 |
-| `internal/battle/system/system_skill.go` | 施法主逻辑 |
-| `internal/battle/system/system_cooldown.go` | 冷却递减 |
-| `internal/battle/system/register.go` | `AddCombatSystems` |
+| `internal/battle/skill/skill_config.go` | 模板 |
+| `internal/battle/skill/skill_target_spec.go` | TargetScope / CampRelation / PickRule |
+| `internal/battle/skill/resolve.go` | 解析与效果执行 |

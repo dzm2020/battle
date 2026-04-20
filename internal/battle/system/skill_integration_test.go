@@ -12,7 +12,7 @@ import (
 
 func TestSkill_LoadJSONAndInstantDamage(t *testing.T) {
 	const raw = `[
-	  {"id":10,"resource":1,"cost":30,"cooldownFrames":2,"target":1,"castFrames":0,
+	  {"id":10,"resource":1,"cost":30,"cooldownFrames":2,"scope":2,"camp":0,"castFrames":0,
 	   "effects":[{"kind":0,"amount":40,"damageType":1}]}
 	]`
 	skillConfig := skill.NewCatalogConfig()
@@ -60,7 +60,8 @@ func TestSkill_AoETwoTargets(t *testing.T) {
 		Resource:       skill.ResourceNone,
 		Cost:           0,
 		CooldownFrames: 0,
-		Target:         skill.TargetAllEnemySides,
+		Scope:          skill.TargetScopeMulti,
+		Camp:           skill.CampEnemy,
 		CastFrames:     0,
 		Effects: []skill.EffectConfig{
 			{Kind: skill.EffectDamage, Amount: 10, DamageType: component.DamageMagical},
@@ -96,7 +97,8 @@ func TestSkill_ChannelThenResolve(t *testing.T) {
 		Resource:       skill.ResourceMana,
 		Cost:           5,
 		CooldownFrames: 0,
-		Target:         skill.TargetSelf,
+		Scope:          skill.TargetScopeSelf,
+		Camp:           skill.CampEnemy,
 		CastFrames:     2,
 		Effects: []skill.EffectConfig{
 			{Kind: skill.EffectHeal, Amount: 7},
@@ -148,7 +150,8 @@ func TestSkill_ApplyBuffEffect(t *testing.T) {
 	skillConfig.Register(skill.SkillConfig{
 		ID:         40,
 		Resource:   skill.ResourceNone,
-		Target:     skill.TargetSelf,
+		Scope:      skill.TargetScopeSelf,
+		Camp:       skill.CampEnemy,
 		CastFrames: 0,
 		Effects:    []skill.EffectConfig{{Kind: skill.EffectApplyBuff, BuffDefID: 900}},
 	})

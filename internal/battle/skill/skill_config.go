@@ -6,71 +6,54 @@ import "battle/internal/battle/component"
 type ResourceType uint8
 
 const (
-	// ResourceNone 无资源消耗，仍受冷却约束。
-	ResourceNone ResourceType = iota
-	ResourceMana
-	ResourceRage
-	ResourceEnergy
+	ResourceNone ResourceType = iota // 无消耗（此时 Cost 必须为 0）
+	ResourceMana                     // 法力
+	ResourceRage                     // 怒气
+	ResourceEnergy                   // 能量
 )
 
-// TargetKind 技能主目标选取方式；群体类仍可能依赖 [component.CastIntent.Target] 作为指向目标（可选）。
-type TargetKind uint8
-
-const (
-	// TargetSelf 仅作用于施法者自身（忽略 CastIntent.Target）。
-	TargetSelf TargetKind = iota
-	// TargetSingleEnemy 单体敌方：需通过 [component.CastIntent.Target] 指定实体，且阵营与施法者不同（见 [component.Team]）。
-	TargetSingleEnemy
-	// TargetAllEnemySides 场上除施法者外，所有具有 [component.Team] 且 Side 与施法者不同的、
-	// 同时含 [component.Health] 的实体（用于范围伤害/群体挂 Buff）。
-	TargetAllEnemySides
-)
-
-// EffectKind 单条技能效果条目类型，一条 [SkillConfig] 可由多个 [EffectConfig] 顺序执行。
+// EffectKind 单条技能效果条目类型；一条技能可有多个 [EffectConfig]，按数组顺序依次执行。
 type EffectKind uint8
 
 const (
-	// EffectDamage 对选取目标列表分别 [component.MergePendingDamage]。
-	EffectDamage EffectKind = iota
-	// EffectHeal 对选取目标列表分别增加 [component.Health].Current（不超过 Max）。
-	EffectHeal
-	// EffectApplyBuff 对选取目标列表分别 [buff.ApplyBuff]；DefID 为 Buff 模板 ID。
-	EffectApplyBuff
+	EffectDamage EffectKind = iota // 写入 [component.PendingDamage]，经伤害系统减免后扣血
+	EffectHeal                     // 直接增加 [component.Health].Current（不超过 Max）
+	EffectApplyBuff                // 调用 [buff.ApplyBuff] 挂载 Buff
 )
 
-// EffectConfig 技能在“结算目标集”上执行的一条原子效果；与 [SkillConfig].Effects 顺序一致执行。
+// EffectConfig 在 [ResolveTargets] 得到的目标列表上，对每个目标执行一条原子效果。
 type EffectConfig struct {
-	// Kind 决定本条目使用哪些可选字段。
-	Kind EffectKind `json:"kind"`
-
-	// Amount 对 EffectDamage 为伤害量（再经伤害系统减免）；对 EffectHeal 为治疗量；其它 Kind 忽略。
-	Amount int `json:"amount,omitempty"`
-	// DamageType 仅 EffectDamage 使用。
-	DamageType component.DamageType `json:"damageType,omitempty"`
-	// BuffDefID 仅 EffectApplyBuff，对应 [buff.DefinitionConfig] 中的 DescriptorConfig.ID。
-	BuffDefID uint32 `json:"buffDefId,omitempty"`
+	Kind       EffectKind           `json:"kind"`                 // 效果类型，决定下列哪些字段生效
+	Amount     int                  `json:"amount,omitempty"`     // 伤害/治疗量；其它 Kind 可忽略
+	DamageType component.DamageType `json:"damageType,omitempty"` // 仅 EffectDamage
+	BuffDefID  uint32               `json:"buffDefId,omitempty"`  // 仅 EffectApplyBuff，对应 Buff 模板 ID
 }
 
-// SkillConfig 技能的静态模板（可由 JSON/YAML 加载）；运行时施放状态见 [component.SkillUser]、[component.SkillCastState]。
+// SkillConfig 技能的静态模板（JSON/YAML）。
+//
+// 目标选取必须由作用范围 × 阵营 × 选取规则组合描述（见仓库根目录 skill_record.md）：
+// [TargetScope]、[CampRelation]、[PickRule]，详见 skill_target_spec.go。
 type SkillConfig struct {
-	// ID 全表唯一，对应施放请求中的技能 ID。
-	ID uint32 `json:"id"`
+	ID uint32 `json:"id"` // 全局唯一；与 CastIntent.SkillID、SkillUser.GrantedSkillIDs 一致
 
-	// Resource 消耗种类；ResourceNone 时 Cost 必须为 0，否则 [SkillIntentSystem] 拒绝施放。
-	Resource ResourceType `json:"resource"`
-	// Cost 单次施放扣除的资源数值（非法或不足时施放失败）。
-	Cost int `json:"cost"`
+	Resource ResourceType `json:"resource"` // 消耗哪种资源
+	Cost     int          `json:"cost"`     // 单次施放扣除量；与 ResourceNone 组合时须为 0
 
-	// CooldownFrames 完整冷却帧数；从“效果结算完毕”当帧起算（瞬发结算后立刻进入冷却；吟唱在吟唱结束结算后）。
-	CooldownFrames int `json:"cooldownFrames"`
+	CooldownFrames int `json:"cooldownFrames"` // 冷却帧数；从「效果结算完毕」当帧写入 SkillUser.CooldownRemaining
 
-	// Target 目标选取策略；决定 [ResolveTargets] 如何从世界收集实体列表。
-	Target TargetKind `json:"target"`
+	// --- 目标三维度（必填 scope、camp；pickRule 可选）---
+	Scope     TargetScope   `json:"scope"`               // 作用范围：单体/群体/链式等；JSON 值为 0 表示非法配置
+	Camp      CampRelation  `json:"camp"`                // 阵营：敌方/友方/全体等；敌方为 JSON 数值 0
+	PickRule  PickRule      `json:"pickRule,omitempty"`  // 选取规则：最近、血量排序等；0 表示不排序
+	CampSide  uint8         `json:"campSide,omitempty"`  // 仅 CampSpecificSide：指定 Team.Side
+	AOERadius float64       `json:"aoeRadius,omitempty"` // 球半径；与 Cone/Circle/Multi 等组合时筛选距离；0 表示不做距离裁剪
 
-	// CastFrames 吟唱/引导帧数；0 表示瞬发。大于 0 时在发起当帧扣除资源并写入 [component.SkillCastState]，
-	// 经过 CastFrames 次 [SkillChannelSystem] 更新后结算效果并进入冷却（资源不在结算帧二次扣除）。
-	CastFrames int `json:"castFrames"`
+	MaxTargets       int    `json:"maxTargets,omitempty"`       // 排序后至多保留多少个目标；随机模式缺省时内部另有默认次数
+	ChainJumps       int    `json:"chainJumps,omitempty"`       // 链式：首目标之外的额外跳跃次数；≤0 时默认额外 2 跳
+	RequireBuffDefID uint32 `json:"requireBuffDefId,omitempty"` // 候选目标必须携带该 Buff 模板 ID
+	ForbidBuffDefID  uint32 `json:"forbidBuffDefId,omitempty"`  // 候选目标不得携带该 Buff 模板 ID
 
-	// Effects 命中目标后顺序执行的效果列表（伤害、治疗、挂 Buff 可混排）。
-	Effects []EffectConfig `json:"effects"`
+	CastFrames int `json:"castFrames"` // 吟唱帧数；0 瞬发且当帧结算；>0 则在发起当帧扣费并进入 SkillCastState
+
+	Effects []EffectConfig `json:"effects"` // 命中目标集后依次执行的效果链
 }

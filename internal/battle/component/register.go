@@ -12,6 +12,7 @@ func RegisterCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&StatModifiers{}) // Buff 汇总后的属性增量
 	r.Register(&ControlState{})  // Buff 汇总后的控制位
 	r.Register(&Team{})
+	r.Register(&Transform2D{})
 	r.Register(&SkillUser{})
 	r.Register(&CastIntent{})
 	r.Register(&SkillCastState{})

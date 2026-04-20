@@ -25,7 +25,7 @@ func (*SkillUser) Component() {}
 type CastIntent struct {
 	// SkillID 对应 [skill.SkillConfig].ID。
 	SkillID uint32
-	// Target 主目标；[skill.TargetSelf] 时忽略；单体敌方、部分 AOE 需要有效实体 ID。
+	// Target 主目标；[skill.TargetScopeSelf] 等作用范围下可忽略；单体与链式需有效实体 ID。
 	Target ecs.Entity
 }
 
@@ -35,7 +35,7 @@ func (*CastIntent) Component() {}
 // 与 CastIntent 互斥：吟唱期间不应再写入新的 CastIntent（应由玩法层阻止）。
 type SkillCastState struct {
 	SkillID uint32
-	// PrimaryTarget 施放开始时锁定；[skill.TargetSelf] 时可为 0。
+	// PrimaryTarget 施放开始时锁定；自身技能时可为 0。
 	PrimaryTarget ecs.Entity
 	// FramesLeft 剩余吟唱帧；初始化为 [skill.SkillConfig].CastFrames（>0）。
 	FramesLeft int
