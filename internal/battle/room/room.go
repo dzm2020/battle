@@ -242,6 +242,11 @@ func (r *Room) Loop() *tick.Loop {
 	return r.loop
 }
 
+// HandlePlayerInput 处理玩家输入 todo
+func (r *Room) HandlePlayerInput() {
+
+}
+
 // SnapshotPlayers 返回 session → 实体 ID 的拷贝（用于广播/调试）。
 func (r *Room) SnapshotPlayers() map[string]ecs.Entity {
 	r.mu.RLock()

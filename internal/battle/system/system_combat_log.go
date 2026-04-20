@@ -55,6 +55,16 @@ func (s *CombatLogSystem) Initialize(w *ecs.World) {
 			Message: fmt.Sprintf("death entity=%v", ev.Entity),
 		})
 	}))
+	s.cancelFns = append(s.cancelFns, w.Subscribe(ecs.EventBattleEnd, func(ev ecs.Event) {
+		msg := fmt.Sprintf("battle_end winner_payload=%d", ev.IntPayload)
+		if ev.IntPayload == BattleEndPayloadDraw {
+			msg = "battle_end draw"
+		}
+		s.push(CombatLogEntry{
+			Kind: "battle_end",
+			Message: msg,
+		})
+	}))
 }
 
 func (s *CombatLogSystem) push(e CombatLogEntry) {

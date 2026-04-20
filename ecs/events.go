@@ -18,6 +18,8 @@ const (
 	EventDamageMissed
 	// EventHealApplied HealSystem 增加生命后派发；Entity 为受疗者，Attacker 作为治疗来源字段复用（Source）；IntPayload 为治疗量。
 	EventHealApplied
+	// EventBattleEnd BattleEndSystem 判定对局结束时派发；IntPayload 为获胜方 [component.Team].Side（0–255）；若全员阵亡（含同归于尽）则为 -1 表示平局。
+	EventBattleEnd
 )
 
 // Event 单次广播的载荷；ComponentID / Component 仅在组件相关事件中有效。
