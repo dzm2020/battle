@@ -33,7 +33,9 @@ type Health struct {
 func (*Health) Component() {}
 
 // Attributes 用于伤害减免；缺失时结算侧按全 0 防御处理。
+// PhysicalPower 为基础攻击强度（占位，供 Buff 百分比加成或技能系数使用）。
 type Attributes struct {
+	PhysicalPower int
 	PhysicalArmor int
 	MagicResist   int
 }

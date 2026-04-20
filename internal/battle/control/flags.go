@@ -1,7 +1,7 @@
 package control
 
-// Flags 控制类状态位掩码（眩晕、沉默等）。
-// 第 7 天 Buff 系统会写入这些位；技能校验只读，不在此包内改 Entity。
+// Flags 控制类状态位掩码。由 [system.BuffSystem] 把 [buff.EffectDef] 中 EffectControl 的位
+// 汇总到 [component.ControlState].Flags；本包保持与 ECS 实体无耦合，仅定义常量与查询方法。
 type Flags uint8
 
 const (

@@ -6,7 +6,8 @@ import (
 	"math"
 )
 
-// DamageSystem 读取 [PendingDamage]，结合 [Attributes]（可无）计算减免，写入 [ResolvedDamage] 并移除 Pending。
+// DamageSystem 读取 [PendingDamage]，将有效物甲/魔抗视为 [component.Attributes] + [component.StatModifiers]
+//（后者由 [BuffSystem] 每帧刷新），再写入 [ResolvedDamage] 并移除 Pending。
 type DamageSystem struct {
 	world *ecs.World
 	q     *ecs.Query[*component.PendingDamage]
@@ -19,20 +20,28 @@ func (s *DamageSystem) Initialize(w *ecs.World) {
 
 func (s *DamageSystem) Update(dt float64) {
 	s.q.ForEach(func(e ecs.Entity, pd *component.PendingDamage) {
-		var attrs *component.Attributes
+		phys := 0
+		mag := 0
 		if c, ok := s.world.GetComponent(e, &component.Attributes{}); ok {
-			attrs = c.(*component.Attributes)
+			a := c.(*component.Attributes)
+			phys = a.PhysicalArmor
+			mag = a.MagicResist
 		}
-		final := s.MitigatedDamage(pd.Amount, pd.Type, attrs)
+		if sm, ok := s.world.GetComponent(e, &component.StatModifiers{}); ok {
+			m := sm.(*component.StatModifiers)
+			phys += m.ArmorDelta
+			mag += m.MRDelta
+		}
+		final := MitigatedDamage(pd.Amount, pd.Type, phys, mag)
 		s.world.RemoveComponent(e, &component.PendingDamage{})
 		s.world.AddComponent(e, &component.ResolvedDamage{Amount: final})
 	})
 }
 
-// MitigatedDamage 根据类型与护甲/魔抗计算最终伤害。
-// True 不参与减免；物理使用 PhysicalArmor，魔法使用 MagicResist。
-// 公式：damage * 100 / max(100 + defense, 1)，防御为负时仍可放大承受伤害。
-func (s *DamageSystem) MitigatedDamage(raw int, t component.DamageType, attrs *component.Attributes) int {
+// MitigatedDamage 根据类型与护甲/魔抗计算最终伤害（已含 Buff 叠加后的有效防御）。
+// True 不参与减免；物理使用 physicalArmor，魔法使用 magicResist。
+// 公式：damage * 100 / max(100 + defense, 1)。
+func MitigatedDamage(raw int, t component.DamageType, physicalArmor, magicResist int) int {
 	if raw <= 0 {
 		return 0
 	}
@@ -42,9 +51,9 @@ func (s *DamageSystem) MitigatedDamage(raw int, t component.DamageType, attrs *c
 	def := 0
 	switch t {
 	case component.DamagePhysical:
-		def = attrs.PhysicalArmor
+		def = physicalArmor
 	case component.DamageMagical:
-		def = attrs.MagicResist
+		def = magicResist
 	default:
 		def = 0
 	}
