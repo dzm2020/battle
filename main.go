@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/edwinsyarief/teishoku"
-	"github.com/mlange-42/ark/ecs"
 )
 
 type Position struct {
@@ -29,7 +28,4 @@ func main() {
 		pos.X += vel.DX
 		pos.Y += vel.DY
 	}
-
-	world := ecs.NewWorld()
-	_ = ecs.ComponentID[Position](world)
 }

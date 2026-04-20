@@ -7,6 +7,7 @@ type World struct {
 	registry *ComponentRegistry
 	entities map[Entity]*EntityComponents
 	systems  []System
+	events   *eventBus
 }
 
 // NewWorld 创建世界
@@ -15,6 +16,7 @@ func NewWorld(initEntityNum int32) *World {
 		registry: NewComponentRegistry(),
 		entities: make(map[Entity]*EntityComponents, initEntityNum),
 		systems:  make([]System, 0, 16),
+		events:   newEventBus(),
 	}
 }
 
@@ -27,11 +29,13 @@ func (w *World) Registry() *ComponentRegistry {
 func (w *World) CreateEntity() Entity {
 	e := NewEntity()
 	w.entities[e] = NewEntityComponents()
+	w.events.emit(Event{Kind: EventEntityCreated, Entity: e})
 	return e
 }
 
 // RemoveEntity 移除实体
 func (w *World) RemoveEntity(e Entity) {
+	w.events.emit(Event{Kind: EventEntityDestroyed, Entity: e})
 	delete(w.entities, e)
 }
 
@@ -42,7 +46,16 @@ func (w *World) AddComponent(e Entity, comp Component) {
 		compID = w.registry.Register(comp)
 	}
 	if ec, exists := w.entities[e]; exists {
+		if _, already := ec.Get(compID); already {
+			return
+		}
 		ec.Add(compID, comp)
+		w.events.emit(Event{
+			Kind:        EventComponentAdded,
+			Entity:      e,
+			ComponentID: compID,
+			Component:   comp,
+		})
 	}
 }
 
@@ -50,7 +63,15 @@ func (w *World) AddComponent(e Entity, comp Component) {
 func (w *World) RemoveComponent(e Entity, comp Component) {
 	if compID, ok := w.registry.ID(comp); ok {
 		if ec, exists := w.entities[e]; exists {
-			ec.Remove(compID)
+			if existing, ok := ec.Get(compID); ok {
+				ec.Remove(compID)
+				w.events.emit(Event{
+					Kind:        EventComponentRemoved,
+					Entity:      e,
+					ComponentID: compID,
+					Component:   existing,
+				})
+			}
 		}
 	}
 }
@@ -76,4 +97,9 @@ func (w *World) Update(dt float64) {
 	for _, s := range w.systems {
 		s.Update(dt)
 	}
+}
+
+// EmitEvent 派发战斗等业务自定义事件（与实体生命周期事件共用同一套订阅）。
+func (w *World) EmitEvent(e Event) {
+	w.events.emit(e)
 }
