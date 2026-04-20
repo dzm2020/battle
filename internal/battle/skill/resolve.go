@@ -521,27 +521,21 @@ func applyMaxTargetsGeneric(ents []ecs.Entity, maxN int) []ecs.Entity {
 	return ents[:maxN]
 }
 
-// ExecuteEffects 对已选目标列表逐效果、逐目标执行；与 [ResolveTargets] 调用顺序由施法系统保证。
-func ExecuteEffects(w *ecs.World, targets []ecs.Entity, sk SkillConfig, buffConfig *buff.DefinitionConfig) {
+// ExecuteEffects 对已选目标列表逐效果、逐目标执行；caster 作为伤害来源写入 [PendingDamage].Source。
+func ExecuteEffects(w *ecs.World, caster ecs.Entity, targets []ecs.Entity, sk SkillConfig, buffConfig *buff.DefinitionConfig) {
 	for i := range sk.Effects {
 		eff := &sk.Effects[i]
 		for _, te := range targets {
 			switch eff.Kind {
 			case EffectDamage:
 				if eff.Amount > 0 {
-					component.MergePendingDamage(w, te, eff.Amount, eff.DamageType)
+					component.MergePendingDamage(w, te, eff.Amount, eff.DamageType, caster)
 				}
 			case EffectHeal:
 				if eff.Amount <= 0 {
 					continue
 				}
-				if h, ok := w.GetComponent(te, &component.Health{}); ok {
-					hp := h.(*component.Health)
-					hp.Current += eff.Amount
-					if hp.Current > hp.Max {
-						hp.Current = hp.Max
-					}
-				}
+				component.MergePendingHeal(w, te, eff.Amount, caster)
 			case EffectApplyBuff:
 				if eff.BuffDefID != 0 && buffConfig != nil {
 					buff.ApplyBuff(w, buffConfig, te, eff.BuffDefID)

@@ -97,7 +97,7 @@ func (s *BuffSystem) accumulateStatic(desc *buff.DescriptorConfig, bi *component
 	}
 }
 
-// tickDOTHOT 按 TickCountdown/间隔推进 DoT（[component.MergePendingDamage]）与 HoT（直接改生命）。
+// tickDOTHOT 按 TickCountdown/间隔推进 DoT（[component.MergePendingDamage]，来源 0）与 HoT（[component.MergePendingHeal]）。
 // 多条 DoT/HoT 共用 DescriptorConfig 内首个 Tick 间隔（与 BuffInstance.TickCountdown 一致）。
 func (s *BuffSystem) tickDOTHOT(e ecs.Entity, bi *component.BuffInstance, desc *buff.DescriptorConfig) {
 	interval := 1
@@ -128,19 +128,13 @@ func (s *BuffSystem) tickDOTHOT(e ecs.Entity, bi *component.BuffInstance, desc *
 		}
 		switch ef.Kind {
 		case buff.EffectDoT:
-			component.MergePendingDamage(s.world, e, ef.DamagePerTick*st, ef.DamageType)
+			component.MergePendingDamage(s.world, e, ef.DamagePerTick*st, ef.DamageType, 0)
 		case buff.EffectHoT:
 			heal := ef.HealPerTick * st
 			if heal <= 0 {
 				continue
 			}
-			if h, ok := s.world.GetComponent(e, &component.Health{}); ok {
-				hp := h.(*component.Health)
-				hp.Current += heal
-				if hp.Current > hp.Max {
-					hp.Current = hp.Max
-				}
-			}
+			component.MergePendingHeal(s.world, e, heal, 0)
 		}
 	}
 

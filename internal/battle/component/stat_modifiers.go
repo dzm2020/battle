@@ -7,6 +7,12 @@ type StatModifiers struct {
 	PhysicalPowerDelta int // 相对 [Attributes].PhysicalPower 的 Buff 增量
 	ArmorDelta         int // 与基础物甲相加得有效护甲（参与物伤减免）
 	MRDelta            int // 与基础魔抗相加得有效魔抗（参与法伤减免）
+
+	// 千分比修正，与 [Attributes] 同字段叠加后参与 [DamageSystem] 判定
+	HitDeltaPermille         int
+	DodgeDeltaPermille       int
+	CritChanceDeltaPermille  int
+	CritDamageDeltaPermille  int
 }
 
 func (*StatModifiers) Component() {}

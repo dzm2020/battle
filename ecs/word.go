@@ -39,6 +39,29 @@ func (w *World) RemoveEntity(e Entity) {
 	delete(w.entities, e)
 }
 
+// EntityExists 是否在世界上仍存活。
+func (w *World) EntityExists(e Entity) bool {
+	if e == 0 {
+		return false
+	}
+	_, ok := w.entities[e]
+	return ok
+}
+
+// RemoveAllEntities 移除世界上全部实体（按当前集合快照逐个删除）。
+func (w *World) RemoveAllEntities() {
+	if len(w.entities) == 0 {
+		return
+	}
+	list := make([]Entity, 0, len(w.entities))
+	for e := range w.entities {
+		list = append(list, e)
+	}
+	for _, e := range list {
+		w.RemoveEntity(e)
+	}
+}
+
 // AddComponent 为实体添加组件
 func (w *World) AddComponent(e Entity, comp Component) {
 	compID, ok := w.registry.ID(comp)

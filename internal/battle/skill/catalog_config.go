@@ -2,7 +2,7 @@ package skill
 
 import "fmt"
 
-// CatalogConfig 技能静态模板配置表（典型用法：战斗房间初始化时加载 JSON/YAML，整场战斗只读）。
+// CatalogConfig 技能静态模板配置表（在游戏或战斗初始化时加载 JSON/YAML，整场战斗只读）。
 type CatalogConfig struct {
 	byID map[uint32]SkillConfig
 }

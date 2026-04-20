@@ -3,7 +3,7 @@ package buff
 import "fmt"
 
 // DefinitionConfig 维护 DefID→[DescriptorConfig] 的查找表；[ApplyBuff] 与 [BuffSystem] 依赖同一张表解析效果。
-// 通常在房间/战斗初始化时注入，同一场战斗内视为只追加、不中途改语义（覆盖同 ID 需自行约定）。
+// 通常在战斗初始化时注入，同一场战斗内视为只追加、不中途改语义（覆盖同 ID 需自行约定）。
 type DefinitionConfig struct {
 	byID map[uint32]DescriptorConfig
 }

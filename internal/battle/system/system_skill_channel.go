@@ -49,7 +49,7 @@ func (s *SkillChannelSystem) Update(dt float64) {
 			return
 		}
 		targets := skill.ResolveTargets(s.world, e, st.PrimaryTarget, sk)
-		skill.ExecuteEffects(s.world, targets, sk, s.buffConfig)
+		skill.ExecuteEffects(s.world, e, targets, sk, s.buffConfig)
 		if su, ok := s.world.GetComponent(e, &component.SkillUser{}); ok {
 			startSkillCooldown(su.(*component.SkillUser), sk.ID, sk.CooldownFrames)
 		}

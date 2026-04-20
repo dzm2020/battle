@@ -94,7 +94,7 @@ func (s *SkillIntentSystem) tryCast(caster ecs.Entity, intent *component.CastInt
 	}
 
 	targets := skill.ResolveTargets(s.world, caster, intent.Target, sk)
-	skill.ExecuteEffects(s.world, targets, sk, s.buffConfig)
+	skill.ExecuteEffects(s.world, caster, targets, sk, s.buffConfig)
 	startSkillCooldown(su, sk.ID, sk.CooldownFrames)
 	removeIntent()
 }

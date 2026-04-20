@@ -2,7 +2,7 @@ package tick
 
 import "battle/internal/battle/clock"
 
-// Subscriber 每逻辑帧回调一次；技能、Buff、房间等以组合方式接入，无需继承巨型 Loop。
+// Subscriber 每逻辑帧回调一次；技能、Buff 等以组合方式接入，无需继承巨型 Loop。
 type Subscriber interface {
 	OnTick(c *clock.Clock)
 }
