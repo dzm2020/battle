@@ -1,6 +1,6 @@
 package room
 
-// Phase 房间生命周期阶段（仅服务端权威）。
+// Phase 房间生命周期阶段（仅服务端权威）；合法迁移见 [phase_fsm.go]。
 type Phase int8
 
 const (

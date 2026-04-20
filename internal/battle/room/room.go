@@ -14,6 +14,7 @@ import (
 )
 
 // Room 单局战斗隔离单元：独立 [ecs.World]、阶段、Clock/Loop。
+// 生命周期阶段迁移集中在 phase_fsm.go（transitionPhase / advancePhaseLocked）。
 // 不依赖网络层；Gateway 只应持有 roomID 并转调 Manager/Room API。
 // 流程：大厅用 [Room.World] 创建实体并 [Join]；[StartBattle] 注册战斗系统并启动 tick；[Settle] 停循环；[Shutdown] 清场。
 type Room struct {
@@ -150,7 +151,10 @@ func (r *Room) StartBattle(ctx context.Context, buffConfig *buff.DefinitionConfi
 		return ErrWrongPhase
 	}
 
-	r.phase = PhasePreBattle
+	if err := advancePhaseLocked(r, phaseEvStartBattle); err != nil {
+		r.mu.Unlock()
+		return err
+	}
 	r.clk = clock.New(r.tps)
 	r.loop = tick.NewLoop(r.clk)
 	loopCtx, cancel := context.WithCancel(ctx)
@@ -167,7 +171,10 @@ func (r *Room) StartBattle(ctx context.Context, buffConfig *buff.DefinitionConfi
 	}))
 
 	r.mu.Lock()
-	r.phase = PhaseFighting
+	if err := advancePhaseLocked(r, phaseEvBattleLive); err != nil {
+		r.mu.Unlock()
+		return err
+	}
 
 	r.runWG.Add(1)
 	go func() {
@@ -187,6 +194,10 @@ func (r *Room) Settle() error {
 		return ErrWrongPhase
 	}
 	cancel = r.cancel
+	if err := advancePhaseLocked(r, phaseEvSettle); err != nil {
+		r.mu.Unlock()
+		return err
+	}
 	r.mu.Unlock()
 
 	if cancel != nil {
@@ -195,7 +206,6 @@ func (r *Room) Settle() error {
 	r.runWG.Wait()
 
 	r.mu.Lock()
-	r.phase = PhaseSettled
 	r.cancel = nil
 	r.loop = nil
 	r.clk = nil
@@ -227,7 +237,10 @@ func (r *Room) Shutdown() {
 	}
 
 	r.mu.Lock()
-	r.phase = PhaseClosed
+	if err := advancePhaseLocked(r, phaseEvShutdown); err != nil {
+		r.mu.Unlock()
+		return
+	}
 	r.players = make(map[string]ecs.Entity)
 	r.cancel = nil
 	r.loop = nil
@@ -240,11 +253,6 @@ func (r *Room) Loop() *tick.Loop {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.loop
-}
-
-// HandlePlayerInput 处理玩家输入 todo
-func (r *Room) HandlePlayerInput() {
-
 }
 
 // SnapshotPlayers 返回 session → 实体 ID 的拷贝（用于广播/调试）。
