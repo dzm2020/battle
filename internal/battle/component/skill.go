@@ -20,7 +20,7 @@ type SkillUser struct {
 
 func (*SkillUser) Component() {}
 
-// CastIntent 由外部玩法层写入，表示“本实体希望施放某技能”；[system.SkillSystem] 消费后应移除组件。
+// CastIntent 由外部玩法层写入，表示“本实体希望施放某技能”；[system.SkillIntentSystem] 消费后应移除组件。
 // 同一实体同一帧至多处理一次意图（后者覆盖前者由玩法层避免）。
 type CastIntent struct {
 	// SkillID 对应 [skill.SkillConfig].ID。

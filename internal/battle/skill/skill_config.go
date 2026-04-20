@@ -56,7 +56,7 @@ type SkillConfig struct {
 	// ID 全表唯一，对应施放请求中的技能 ID。
 	ID uint32 `json:"id"`
 
-	// Resource 消耗种类；ResourceNone 时 Cost 必须为 0，否则 [SkillSystem] 拒绝施放。
+	// Resource 消耗种类；ResourceNone 时 Cost 必须为 0，否则 [SkillIntentSystem] 拒绝施放。
 	Resource ResourceType `json:"resource"`
 	// Cost 单次施放扣除的资源数值（非法或不足时施放失败）。
 	Cost int `json:"cost"`
@@ -68,7 +68,7 @@ type SkillConfig struct {
 	Target TargetKind `json:"target"`
 
 	// CastFrames 吟唱/引导帧数；0 表示瞬发。大于 0 时在发起当帧扣除资源并写入 [component.SkillCastState]，
-	// 经过 CastFrames 次 [SkillSystem] 更新后结算效果并进入冷却（资源不在结算帧二次扣除）。
+	// 经过 CastFrames 次 [SkillChannelSystem] 更新后结算效果并进入冷却（资源不在结算帧二次扣除）。
 	CastFrames int `json:"castFrames"`
 
 	// Effects 命中目标后顺序执行的效果列表（伤害、治疗、挂 Buff 可混排）。

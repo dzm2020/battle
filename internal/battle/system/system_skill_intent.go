@@ -9,24 +9,23 @@ import (
 	"slices"
 )
 
-// SkillSystem 处理 [component.CastIntent]（瞬发或进入吟唱）与 [component.SkillCastState]（吟唱结束结算），
-// 并调用 [skill.ExecuteEffects] 与 Buff 配置联动。须在 [CooldownSystem] 之后、[DamageSystem] 之前注册，
-// 以便本帧技能产生的 [PendingDamage] 参与减免。
-type SkillSystem struct {
+// SkillIntentSystem 消费 [component.CastIntent]：校验、扣费、瞬发结算或创建吟唱状态。
+// 须在 [SkillChannelSystem] 之后注册，以便本帧吟唱先结算后再接受新意图；须在 [DamageSystem] 之前，
+// 以便瞬发技能产生的 [PendingDamage] 参与减免。
+type SkillIntentSystem struct {
 	world       *ecs.World
 	skillConfig *skill.CatalogConfig
 	buffConfig  *buff.DefinitionConfig
 
-	qIntent  *ecs.Query[*component.CastIntent]
-	qChannel *ecs.Query[*component.SkillCastState]
+	qIntent *ecs.Query[*component.CastIntent]
 }
 
-// NewSkillSystem skillConfig / buffConfig 可为 nil（内部退化为空表）；正式战斗应注入 [skill.CatalogConfig] 与 [buff.DefinitionConfig]。
-func NewSkillSystem(skillConfig *skill.CatalogConfig, buffConfig *buff.DefinitionConfig) *SkillSystem {
-	return &SkillSystem{skillConfig: skillConfig, buffConfig: buffConfig}
+// NewSkillIntentSystem skillConfig / buffConfig 可为 nil（内部退化为空表）。
+func NewSkillIntentSystem(skillConfig *skill.CatalogConfig, buffConfig *buff.DefinitionConfig) *SkillIntentSystem {
+	return &SkillIntentSystem{skillConfig: skillConfig, buffConfig: buffConfig}
 }
 
-func (s *SkillSystem) Initialize(w *ecs.World) {
+func (s *SkillIntentSystem) Initialize(w *ecs.World) {
 	s.world = w
 	if s.skillConfig == nil {
 		s.skillConfig = skill.NewCatalogConfig()
@@ -35,46 +34,15 @@ func (s *SkillSystem) Initialize(w *ecs.World) {
 		s.buffConfig = buff.NewDefinitionConfig()
 	}
 	s.qIntent = ecs.NewQuery[*component.CastIntent](w)
-	s.qChannel = ecs.NewQuery[*component.SkillCastState](w)
 }
 
-func (s *SkillSystem) Update(dt float64) {
-	s.advanceChannels()
-	s.processIntents()
-}
-
-// advanceChannels 推进吟唱帧；归零当帧结算技能效果并写入冷却（资源已在发起吟唱时扣除）。
-func (s *SkillSystem) advanceChannels() {
-	s.qChannel.ForEach(func(e ecs.Entity, st *component.SkillCastState) {
-		if st.FramesLeft <= 0 {
-			return
-		}
-		st.FramesLeft--
-		if st.FramesLeft > 0 {
-			return
-		}
-		sk, ok := s.skillConfig.Get(st.SkillID)
-		if !ok {
-			s.world.RemoveComponent(e, &component.SkillCastState{})
-			return
-		}
-		targets := skill.ResolveTargets(s.world, e, st.PrimaryTarget, sk)
-		skill.ExecuteEffects(s.world, targets, sk, s.buffConfig)
-		if su, ok := s.world.GetComponent(e, &component.SkillUser{}); ok {
-			startSkillCooldown(su.(*component.SkillUser), sk.ID, sk.CooldownFrames)
-		}
-		s.world.RemoveComponent(e, &component.SkillCastState{})
-	})
-}
-
-// processIntents 消费施法意图：校验、扣费、瞬发结算或创建吟唱状态。
-func (s *SkillSystem) processIntents() {
+func (s *SkillIntentSystem) Update(dt float64) {
 	s.qIntent.ForEach(func(e ecs.Entity, intent *component.CastIntent) {
 		s.tryCast(e, intent)
 	})
 }
 
-func (s *SkillSystem) tryCast(caster ecs.Entity, intent *component.CastIntent) {
+func (s *SkillIntentSystem) tryCast(caster ecs.Entity, intent *component.CastIntent) {
 	removeIntent := func() { s.world.RemoveComponent(caster, &component.CastIntent{}) }
 
 	if !action.CanAct(s.world, caster) {
@@ -184,14 +152,4 @@ func paySkillCost(su *component.SkillUser, sk skill.SkillConfig) bool {
 		return false
 	}
 	return true
-}
-
-func startSkillCooldown(su *component.SkillUser, skillID uint32, frames int) {
-	if frames <= 0 {
-		return
-	}
-	if su.CooldownRemaining == nil {
-		su.CooldownRemaining = make(map[uint32]int)
-	}
-	su.CooldownRemaining[skillID] = frames
 }

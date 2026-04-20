@@ -6,7 +6,7 @@ import (
 )
 
 // CooldownSystem 仅负责将 [component.SkillUser].CooldownRemaining 中各技能剩余帧每帧减 1，
-// 并在归零时删除键。须排在 [SkillSystem] 之前，以便本帧先完成“上帧进入冷却”的递减再接收新施法。
+// 并在归零时删除键。须排在 [SkillIntentSystem] 之前，以便本帧先完成“上帧进入冷却”的递减再接收新施法。
 type CooldownSystem struct {
 	world *ecs.World
 	q     *ecs.Query[*component.SkillUser]
