@@ -7,7 +7,7 @@
 ## 1. 设计目标
 
 - **单实体多条 Buff**：一个 ECS 组件 `BuffList` 内持有一条切片，可挂载 **20+** 条互不影响的 Buff 实例（每条有独立 `DefID`、`Stacks`、`FramesLeft`、`TickCountdown`）。
-- **静态与运行时分离**：效果数值、持续时间、叠层策略等来自 **`buff.Descriptor`**（可通过 JSON 加载）；运行时只保存实例状态 + 指向定义的 `DefID`。
+- **静态与运行时分离**：效果数值、持续时间、叠层策略等来自 **`buff.DescriptorConfig`**（可通过 JSON 加载）；运行时只保存实例状态 + 指向定义的 `DefID`。
 - **与战斗管线衔接**：DoT 写入 `PendingDamage`，经 **Damage → Health → Death** 结算；Buff 系统在 Damage 之前运行。
 - **属性与控制外置**：每帧根据 Buff 聚合出 **`StatModifiers`**（可被 `DamageSystem` 用于有效护甲/魔抗）与 **`ControlState`**（眩晕/沉默等，供 `action` 包校验）。
 
@@ -28,7 +28,7 @@
 
 | 字段 | 含义 |
 |------|------|
-| `DefID` | 在 `buff.DefinitionRegistry` 中查找 `Descriptor` 的主键 |
+| `DefID` | 在 `buff.DefinitionConfig` 中查找 `DescriptorConfig` 的主键 |
 | `Stacks` | 叠层数（参与数值类效果乘算） |
 | `FramesLeft` | 剩余持续帧；`≥0` 时按帧递减；**`<0` 表示不限时**（不由时间轴移除） |
 | `TickCountdown` | DoT/HoT 距离下一次结算的帧计数（见 §5） |
@@ -37,9 +37,9 @@
 
 ---
 
-## 3. 静态配置：`buff.Descriptor` / `EffectDef`
+## 3. 静态配置：`buff.DescriptorConfig` / `buff.EffectConfig`
 
-### 3.1 `Descriptor`（一条 Buff「模板」）
+### 3.1 `DescriptorConfig`（一条 Buff「模板」）
 
 | 字段 | 含义 |
 |------|------|
@@ -47,9 +47,9 @@
 | `MaxStacks` | 叠层上限（至少按 1 处理） |
 | `Policy` | 同名再次施加时的策略（见 §4） |
 | `DurationFrames` | 持续帧数；`-1` 为不限时直到驱散/逻辑移除 |
-| `Effects` | 效果列表，一条 Descriptor 可挂多种效果 |
+| `Effects` | 效果列表，一条 DescriptorConfig 可挂多种效果 |
 
-### 3.2 `EffectKind` 与 `EffectDef`
+### 3.2 `EffectKind` 与 `EffectConfig`
 
 | Kind | 作用 |
 |------|------|
@@ -62,8 +62,8 @@
 
 ### 3.3 配置入口
 
-- 代码：`DefinitionRegistry.Register(Descriptor)`。
-- 数据：`buff.LoadDescriptorsFromJSON` 解析 JSON 数组并批量 `Register`（字段见 `Descriptor` / `EffectDef` 上的 `json` 标签）。
+- 代码：`DefinitionConfig.Register(DescriptorConfig)`。
+- 数据：`buff.LoadDefinitionConfigFromJSON` 解析 JSON 数组并批量 `Register`（字段见 `DescriptorConfig` / `EffectConfig` 上的 `json` 标签）。
 
 ---
 
@@ -77,7 +77,7 @@
 | **Refresh** | 若已存在同名实例：**仅把 `FramesLeft` 重置为配置值**，**不改变 `Stacks`**；不存在则新建 1 层 |
 | **Merge** | 若已存在同名实例：**`Stacks++`**（封顶 `MaxStacks`），并 **重置持续时间**；不存在则新建 |
 
-施加新实例时：`FramesLeft = Descriptor.DurationFrames`；`TickCountdown` 由第一个 DoT/HoT 的 `TickIntervalFrames` 推导（见 `apply.go` 中 `findFirstInterval`）。
+施加新实例时：`FramesLeft = DescriptorConfig.DurationFrames`；`TickCountdown` 由第一个 DoT/HoT 的 `TickIntervalFrames` 推导（见 `apply.go` 中 `findFirstInterval`）。
 
 ---
 
@@ -86,7 +86,7 @@
 对 **每个** `BuffInstance`，`BuffSystem` 顺序为：
 
 1. **聚合**本帧仍有效的属性/控制（`accumulateStatic`）。
-2. **DoT/HoT 节拍**：若 Descriptor 中 **第一个** DoT/HoT 定义了间隔，则取该间隔；`TickCountdown` 每帧 `-1`，当 `<0` 时结算本跳所有 DoT/HoT 效果，并将 `TickCountdown` 重置为 `interval - 1`。
+2. **DoT/HoT 节拍**：若 DescriptorConfig 中 **第一个** DoT/HoT 定义了间隔，则取该间隔；`TickCountdown` 每帧 `-1`，当 `<0` 时结算本跳所有 DoT/HoT 效果，并将 `TickCountdown` 重置为 `interval - 1`。
 3. **持续时间**：若 `FramesLeft ≥ 0`，则本帧末 `FramesLeft--`；若 `≤0` 则本实例移除。`FramesLeft < 0` 的不做时间递减。
 
 **要点**：多条 `EffectDoT` / `EffectHoT` 共用 **同一套** 实例级 `TickCountdown`；间隔以 **遍历 Effects 时首次遇到的** DoT/HoT 为准。
@@ -98,8 +98,10 @@
 ### 6.1 系统顺序（`system.AddCombatSystems`）
 
 ```
-BuffSystem → DamageSystem → HealthSystem → DeathSystem
+BuffSystem → CooldownSystem → SkillSystem → DamageSystem → HealthSystem → DeathSystem
 ```
+
+（技能框架见 [skill-design.md](./skill-design.md)。）
 
 因此 **本帧 DoT** 写入的 `PendingDamage` 会在同一 `World.Update` 内进入减免与扣血。
 
@@ -121,9 +123,9 @@ BuffSystem → DamageSystem → HealthSystem → DeathSystem
 
 ## 7. 初始化约定
 
-1. `component.RegisterCombatTypesWorld(w)`（或等价地向 `Registry` 注册战斗相关组件类型）。
-2. 构造 `buff.DefinitionRegistry`，注册或通过 JSON 加载全部 `Descriptor`。
-3. `system.AddCombatSystems(w, registry)`。
+1. `component.RegisterCombatTypesWorld(w)`（或等价地向 ECS `Registry` 注册战斗相关组件类型）。
+2. 构造 `buff.DefinitionConfig`，注册或通过 JSON 加载全部 `DescriptorConfig`；若使用技能，再构造 `skill.CatalogConfig` 并加载技能表（见 [skill-design.md](./skill-design.md)）。
+3. `system.AddCombatSystems(w, buffConfig, skillConfig)`；无技能时可传 `nil` 使用空技能表。
 4. 对实体 `ApplyBuff` / 添加 `Health`、`Attributes` 等；每帧调用 `world.Update(dt)`。
 
 ---

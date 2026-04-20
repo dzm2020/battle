@@ -1,6 +1,6 @@
 package control
 
-// Flags 控制类状态位掩码。由 [system.BuffSystem] 把 [buff.EffectDef] 中 EffectControl 的位
+// Flags 控制类状态位掩码。由 [system.BuffSystem] 把 [buff.EffectConfig] 中 EffectControl 的位
 // 汇总到 [component.ControlState].Flags；本包保持与 ECS 实体无耦合，仅定义常量与查询方法。
 type Flags uint8
 

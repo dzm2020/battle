@@ -5,7 +5,7 @@ import (
 	"battle/internal/battle/control"
 )
 
-// StackPolicy 同名 Buff（同一 [Descriptor].ID）再次施加时的叠层策略。
+// StackPolicy 同名 Buff（同一 [DescriptorConfig].ID）再次施加时的叠层策略。
 type StackPolicy uint8
 
 const (
@@ -18,7 +18,7 @@ const (
 	StackMerge
 )
 
-// EffectKind 描述一条 [EffectDef] 的语义；同一 [Descriptor] 可组合多种 Kind。
+// EffectKind 描述一条 [EffectConfig] 的语义；同一 [DescriptorConfig] 可组合多种 Kind。
 type EffectKind uint8
 
 const (
@@ -28,9 +28,9 @@ const (
 	EffectControl                   // 控制位，OR 入 [component.ControlState].Flags
 )
 
-// EffectDef 静态配置的一条子效果；同属一条 [Descriptor] 的多条 EffectDef 在同一 Buff 实例上并存。
+// EffectConfig 静态配置的一条子效果；同属一条 [DescriptorConfig] 的多条 EffectConfig 在同一 Buff 实例上并存。
 // 数值类效果在 [BuffSystem] 中与实例 Stacks 相乘；控制类不按层翻倍，仅为按位或到 [component.ControlState]。
-type EffectDef struct {
+type EffectConfig struct {
 	// Kind 决定本条如何参与结算；必须与下方非零字段语义一致（见各字段说明）。
 	Kind EffectKind `json:"kind"`
 
@@ -46,7 +46,7 @@ type EffectDef struct {
 	// DamageType DoT 的伤害类型（物/魔/真）；仅 EffectDoT，写入 [component.MergePendingDamage]。
 	DamageType component.DamageType `json:"damageType,omitempty"`
 	// TickIntervalFrames DoT/HoT 相邻两跳之间的帧间隔，>=1（实现会钳制为至少 1）；
-	// DoT/HoT 共用 [component.BuffInstance].TickCountdown；同一 Descriptor 取首个 DoT/HoT 出现的间隔为准。
+	// DoT/HoT 共用 [component.BuffInstance].TickCountdown；同一 DescriptorConfig 取首个 DoT/HoT 出现的间隔为准。
 	TickIntervalFrames int `json:"tickIntervalFrames,omitempty"`
 
 	// HealPerTick 单次 HoT 一跳的基础治疗量（再乘 Stacks）；仅 EffectHoT，直接加 [component.Health].Current。
@@ -56,11 +56,11 @@ type EffectDef struct {
 	Control control.Flags `json:"control,omitempty"`
 }
 
-// Descriptor 单种 Buff 的模板：与运行时 [component.BuffInstance] 通过 ID 关联，可多效果组合。
-type Descriptor struct {
+// DescriptorConfig 单种 Buff 的模板：与运行时 [component.BuffInstance] 通过 ID 关联，可多效果组合。
+type DescriptorConfig struct {
 	ID             uint32      `json:"id"`             // 全表唯一，与 BuffInstance.DefID 一致
 	MaxStacks      int         `json:"maxStacks"`      // Merge/Refresh 时 Stacks 上限，至少按 1 处理
 	Policy         StackPolicy `json:"policy"`         // 再次施加同名 Buff 时的策略
 	DurationFrames int         `json:"durationFrames"` // >=0 时走时间到期；=-1 为不限天然时长（FramesLeft 为负）
-	Effects        []EffectDef `json:"effects"`        // 本 Buff 实例激活时生效的全部子效果
+	Effects        []EffectConfig `json:"effects"`     // 本 Buff 实例激活时生效的全部子效果
 }

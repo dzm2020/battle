@@ -9,20 +9,20 @@ import (
 // BuffSystem 递减持续时间、结算 DoT/HoT、汇总属性与控制位并写入 [StatModifiers]/[ControlState]。
 // 须在 [DamageSystem] 之前运行，以便本帧 DoT 写入的 [PendingDamage] 参与结算。
 type BuffSystem struct {
-	world *ecs.World
-	defs  *buff.DefinitionRegistry
-	q     *ecs.Query[*component.BuffList]
+	world     *ecs.World
+	buffConfig *buff.DefinitionConfig
+	q         *ecs.Query[*component.BuffList]
 }
 
-// NewBuffSystem defs 可为 nil（会使用空表），正常运行时应传入已 Register 的表。
-func NewBuffSystem(defs *buff.DefinitionRegistry) *BuffSystem {
-	return &BuffSystem{defs: defs}
+// NewBuffSystem buffConfig 可为 nil（会使用空 [buff.DefinitionConfig]），正常运行时应传入已 Register 的配置表。
+func NewBuffSystem(buffConfig *buff.DefinitionConfig) *BuffSystem {
+	return &BuffSystem{buffConfig: buffConfig}
 }
 
 func (s *BuffSystem) Initialize(w *ecs.World) {
 	s.world = w
-	if s.defs == nil {
-		s.defs = buff.NewRegistry()
+	if s.buffConfig == nil {
+		s.buffConfig = buff.NewDefinitionConfig()
 	}
 	s.q = ecs.NewQuery[*component.BuffList](w)
 }
@@ -51,13 +51,13 @@ func (s *BuffSystem) tickEntity(e ecs.Entity, bl *component.BuffList) {
 	alive := make([]component.BuffInstance, 0, len(bl.Buffs))
 	for i := range bl.Buffs {
 		bi := bl.Buffs[i]
-		def, ok := s.defs.Get(bi.DefID)
+		descConfig, ok := s.buffConfig.Get(bi.DefID)
 		if !ok {
 			continue
 		}
 
-		s.accumulateStatic(&def, &bi, mods, ctrl)
-		s.tickDOTHOT(e, &bi, &def)
+		s.accumulateStatic(&descConfig, &bi, mods, ctrl)
+		s.tickDOTHOT(e, &bi, &descConfig)
 
 		keep := true
 		if bi.FramesLeft >= 0 {
@@ -79,12 +79,12 @@ func (s *BuffSystem) tickEntity(e ecs.Entity, bl *component.BuffList) {
 }
 
 // accumulateStatic 将本帧仍存活实例上的 StatMod/Control 效果累加到 mods、ctrl。
-func (s *BuffSystem) accumulateStatic(def *buff.Descriptor, bi *component.BuffInstance, mods *component.StatModifiers, ctrl *component.ControlState) {
+func (s *BuffSystem) accumulateStatic(desc *buff.DescriptorConfig, bi *component.BuffInstance, mods *component.StatModifiers, ctrl *component.ControlState) {
 	st := bi.Stacks
 	if st < 1 {
 		st = 1
 	}
-	for _, ef := range def.Effects {
+	for _, ef := range desc.Effects {
 		switch ef.Kind {
 		case buff.EffectStatMod:
 			mods.ArmorDelta += ef.ArmorDeltaPerStack * st
@@ -98,11 +98,11 @@ func (s *BuffSystem) accumulateStatic(def *buff.Descriptor, bi *component.BuffIn
 }
 
 // tickDOTHOT 按 TickCountdown/间隔推进 DoT（[component.MergePendingDamage]）与 HoT（直接改生命）。
-// 多条 DoT/HoT 共用 Descriptor 内首个 Tick 间隔（与 BuffInstance.TickCountdown 一致）。
-func (s *BuffSystem) tickDOTHOT(e ecs.Entity, bi *component.BuffInstance, def *buff.Descriptor) {
+// 多条 DoT/HoT 共用 DescriptorConfig 内首个 Tick 间隔（与 BuffInstance.TickCountdown 一致）。
+func (s *BuffSystem) tickDOTHOT(e ecs.Entity, bi *component.BuffInstance, desc *buff.DescriptorConfig) {
 	interval := 1
 	hasTick := false
-	for _, ef := range def.Effects {
+	for _, ef := range desc.Effects {
 		if ef.Kind == buff.EffectDoT || ef.Kind == buff.EffectHoT {
 			hasTick = true
 			interval = ef.TickIntervalFrames
@@ -121,7 +121,7 @@ func (s *BuffSystem) tickDOTHOT(e ecs.Entity, bi *component.BuffInstance, def *b
 		return
 	}
 
-	for _, ef := range def.Effects {
+	for _, ef := range desc.Effects {
 		st := bi.Stacks
 		if st < 1 {
 			st = 1

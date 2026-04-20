@@ -3,7 +3,7 @@
 package component
 
 // BuffList 单实体上的 Buff 容器：所有可叠加/并存的实例都缓存在 Buffs 切片中（即运行期
-// 的“状态表/缓冲表”），与 [buff.Descriptor] 所描述的一条条模板一一通过 DefID 对应。
+// 的“状态表/缓冲表”），与 [buff.DescriptorConfig] 所描述的一条条模板一一通过 DefID 对应。
 // 无 Buff 时本组件应被移除，并同时清掉 [StatModifiers]、[ControlState] 等派生数据。
 type BuffList struct {
 	// Buffs 按加入顺序或系统维护顺序排列；同 DefID 可因叠层策略出现多条（Independent）或单条（Refresh/Merge）。
@@ -13,9 +13,9 @@ type BuffList struct {
 func (*BuffList) Component() {}
 
 // BuffInstance 单条 Buff 的运行态（“槽位”数据），不内联全部效果，只存层数、剩余时间
-// 与 DoT/HoT 节拍；效果定义在 [buff.Descriptor] 中，由 [buff.DefinitionRegistry] 按 DefID 查表。
+// 与 DoT/HoT 节拍；效果定义在 [buff.DescriptorConfig] 中，由 [buff.DefinitionConfig] 按 DefID 查表。
 type BuffInstance struct {
-	// DefID 对应 [buff.Descriptor].ID，同表内必须已 Register，否则 [system.BuffSystem] 会丢弃该实例。
+	// DefID 对应 [buff.DescriptorConfig].ID，同表内必须已 Register，否则 [system.BuffSystem] 会丢弃该实例。
 	DefID uint32
 
 	// Stacks 层数，参与属性/DoT/HoT 的每跳强度（控制类效果不按层数放大，只由是否含该 Def 决定）。

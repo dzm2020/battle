@@ -13,11 +13,11 @@ func tickIntervalOr1(n int) int {
 	return n
 }
 
-// ApplyBuff 在实体上施加（或叠层）指定 DefID：先查 [DefinitionRegistry]，再按 [Descriptor.Policy]
+// ApplyBuff 在实体上施加（或叠层）指定 DefID：先查 [DefinitionConfig]，再按 [DescriptorConfig.Policy]
 // 修改或追加 [component.BuffList].Buffs；新建实例时会初始化 FramesLeft、TickCountdown（取首个 DoT/HoT 间隔）。
 // 返回 false 表示 defID 未注册。
-func ApplyBuff(w *ecs.World, defs *DefinitionRegistry, e ecs.Entity, defID uint32) bool {
-	def, ok := defs.Get(defID)
+func ApplyBuff(w *ecs.World, buffConfig *DefinitionConfig, e ecs.Entity, defID uint32) bool {
+	desc, ok := buffConfig.Get(defID)
 	if !ok {
 		return false
 	}
@@ -30,22 +30,22 @@ func ApplyBuff(w *ecs.World, defs *DefinitionRegistry, e ecs.Entity, defID uint3
 		w.AddComponent(e, bl)
 	}
 
-	max := def.MaxStacks
+	max := desc.MaxStacks
 	if max < 1 {
 		max = 1
 	}
 
 	newInst := func(stacks int) component.BuffInstance {
-		tc := tickIntervalOr1(findFirstInterval(&def))
+		tc := tickIntervalOr1(findFirstInterval(&desc))
 		return component.BuffInstance{
 			DefID:         defID,
 			Stacks:        stacks,
-			FramesLeft:    def.DurationFrames,
+			FramesLeft:    desc.DurationFrames,
 			TickCountdown: tc - 1,
 		}
 	}
 
-	switch def.Policy {
+	switch desc.Policy {
 	case StackIndependent:
 		bl.Buffs = append(bl.Buffs, newInst(1))
 
@@ -56,7 +56,7 @@ func ApplyBuff(w *ecs.World, defs *DefinitionRegistry, e ecs.Entity, defID uint3
 			break
 		}
 		b := &bl.Buffs[idx]
-		b.FramesLeft = def.DurationFrames
+		b.FramesLeft = desc.DurationFrames
 
 	case StackMerge:
 		idx := findDefIndex(bl.Buffs, defID)
@@ -69,7 +69,7 @@ func ApplyBuff(w *ecs.World, defs *DefinitionRegistry, e ecs.Entity, defID uint3
 		if b.Stacks > max {
 			b.Stacks = max
 		}
-		b.FramesLeft = def.DurationFrames
+		b.FramesLeft = desc.DurationFrames
 	default:
 		bl.Buffs = append(bl.Buffs, newInst(1))
 	}
@@ -87,8 +87,8 @@ func findDefIndex(buf []component.BuffInstance, id uint32) int {
 }
 
 // findFirstInterval 取 Effects 里首个 DoT/HoT 的 TickIntervalFrames，用于初始化 BuffInstance.TickCountdown。
-func findFirstInterval(def *Descriptor) int {
-	for _, ef := range def.Effects {
+func findFirstInterval(desc *DescriptorConfig) int {
+	for _, ef := range desc.Effects {
 		switch ef.Kind {
 		case EffectDoT, EffectHoT:
 			return tickIntervalOr1(ef.TickIntervalFrames)

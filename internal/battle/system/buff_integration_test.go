@@ -10,31 +10,31 @@ import (
 	"battle/internal/battle/control"
 )
 
-func setupCombatWorld(reg *buff.DefinitionRegistry) *ecs.World {
+func setupCombatWorld(buffConfig *buff.DefinitionConfig) *ecs.World {
 	w := ecs.NewWorld(64)
 	component.RegisterCombatTypesWorld(w)
-	AddCombatSystems(w, reg)
+	AddCombatSystems(w, buffConfig, nil)
 	return w
 }
 
 func TestBuff_ManyIndependentBuffs(t *testing.T) {
-	reg := buff.NewRegistry()
+	buffConfig := buff.NewDefinitionConfig()
 	for id := uint32(1); id <= 20; id++ {
 		id := id
-		reg.Register(buff.Descriptor{
+		buffConfig.Register(buff.DescriptorConfig{
 			ID:             id,
 			MaxStacks:      1,
 			Policy:         buff.StackIndependent,
 			DurationFrames: 5,
-			Effects: []buff.EffectDef{
+			Effects: []buff.EffectConfig{
 				{Kind: buff.EffectStatMod, ArmorDeltaPerStack: 1},
 			},
 		})
 	}
-	w := setupCombatWorld(reg)
+	w := setupCombatWorld(buffConfig)
 	e := w.CreateEntity()
 	for id := uint32(1); id <= 20; id++ {
-		if !buff.ApplyBuff(w, reg, e, id) {
+		if !buff.ApplyBuff(w, buffConfig, e, id) {
 			t.Fatalf("ApplyBuff %d", id)
 		}
 	}
@@ -56,13 +56,13 @@ func TestBuff_ManyIndependentBuffs(t *testing.T) {
 }
 
 func TestBuff_DoTPerFrame(t *testing.T) {
-	reg := buff.NewRegistry()
-	reg.Register(buff.Descriptor{
+	buffConfig := buff.NewDefinitionConfig()
+	buffConfig.Register(buff.DescriptorConfig{
 		ID:             101,
 		MaxStacks:      1,
 		Policy:         buff.StackMerge,
 		DurationFrames: 10,
-		Effects: []buff.EffectDef{
+		Effects: []buff.EffectConfig{
 			{
 				Kind:               buff.EffectDoT,
 				DamagePerTick:      20,
@@ -71,11 +71,11 @@ func TestBuff_DoTPerFrame(t *testing.T) {
 			},
 		},
 	})
-	w := setupCombatWorld(reg)
+	w := setupCombatWorld(buffConfig)
 	e := w.CreateEntity()
 	w.AddComponent(e, &component.Health{Current: 1000, Max: 1000})
 	w.AddComponent(e, &component.Attributes{MagicResist: 100})
-	buff.ApplyBuff(w, reg, e, 101)
+	buff.ApplyBuff(w, buffConfig, e, 101)
 
 	w.Update(0)
 	h := getHealth(t, w, e)
@@ -85,22 +85,22 @@ func TestBuff_DoTPerFrame(t *testing.T) {
 }
 
 func TestBuff_StunBlocksAct(t *testing.T) {
-	reg := buff.NewRegistry()
-	reg.Register(buff.Descriptor{
+	buffConfig := buff.NewDefinitionConfig()
+	buffConfig.Register(buff.DescriptorConfig{
 		ID:             202,
 		MaxStacks:      1,
 		Policy:         buff.StackMerge,
 		DurationFrames: 30,
-		Effects: []buff.EffectDef{
+		Effects: []buff.EffectConfig{
 			{Kind: buff.EffectControl, Control: control.FlagStunned},
 		},
 	})
-	w := setupCombatWorld(reg)
+	w := setupCombatWorld(buffConfig)
 	e := w.CreateEntity()
 	if !action.CanAct(w, e) {
 		t.Fatal("should act without buff")
 	}
-	buff.ApplyBuff(w, reg, e, 202)
+	buff.ApplyBuff(w, buffConfig, e, 202)
 	w.Update(0)
 	if action.CanAct(w, e) {
 		t.Fatal("stun should block action")
@@ -108,24 +108,24 @@ func TestBuff_StunBlocksAct(t *testing.T) {
 }
 
 func TestBuff_StackRefresh(t *testing.T) {
-	reg := buff.NewRegistry()
-	reg.Register(buff.Descriptor{
+	buffConfig := buff.NewDefinitionConfig()
+	buffConfig.Register(buff.DescriptorConfig{
 		ID:             303,
 		MaxStacks:      3,
 		Policy:         buff.StackRefresh,
 		DurationFrames: 3,
-		Effects: []buff.EffectDef{
+		Effects: []buff.EffectConfig{
 			{Kind: buff.EffectStatMod, ArmorDeltaPerStack: 5},
 		},
 	})
-	w := setupCombatWorld(reg)
+	w := setupCombatWorld(buffConfig)
 	e := w.CreateEntity()
-	buff.ApplyBuff(w, reg, e, 303)
+	buff.ApplyBuff(w, buffConfig, e, 303)
 	bl1 := getBuffList(t, w, e)
 	if bl1.Buffs[0].Stacks != 1 {
 		t.Fatalf("stacks want 1 got %d", bl1.Buffs[0].Stacks)
 	}
-	buff.ApplyBuff(w, reg, e, 303)
+	buff.ApplyBuff(w, buffConfig, e, 303)
 	bl2 := getBuffList(t, w, e)
 	if bl2.Buffs[0].Stacks != 1 {
 		t.Fatalf("refresh should not add stack, want 1 got %d", bl2.Buffs[0].Stacks)
@@ -136,20 +136,20 @@ func TestBuff_StackRefresh(t *testing.T) {
 }
 
 func TestBuff_StackMerge(t *testing.T) {
-	reg := buff.NewRegistry()
-	reg.Register(buff.Descriptor{
+	buffConfig := buff.NewDefinitionConfig()
+	buffConfig.Register(buff.DescriptorConfig{
 		ID:             404,
 		MaxStacks:      3,
 		Policy:         buff.StackMerge,
 		DurationFrames: 10,
-		Effects: []buff.EffectDef{
+		Effects: []buff.EffectConfig{
 			{Kind: buff.EffectStatMod, ArmorDeltaPerStack: 2},
 		},
 	})
-	w := setupCombatWorld(reg)
+	w := setupCombatWorld(buffConfig)
 	e := w.CreateEntity()
-	buff.ApplyBuff(w, reg, e, 404)
-	buff.ApplyBuff(w, reg, e, 404)
+	buff.ApplyBuff(w, buffConfig, e, 404)
+	buff.ApplyBuff(w, buffConfig, e, 404)
 	bl := getBuffList(t, w, e)
 	if bl.Buffs[0].Stacks != 2 {
 		t.Fatalf("merge stacks want 2 got %d", bl.Buffs[0].Stacks)

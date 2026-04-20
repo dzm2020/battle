@@ -7,7 +7,7 @@ import (
 )
 
 // DamageSystem 读取 [PendingDamage]，将有效物甲/魔抗视为 [component.Attributes] + [component.StatModifiers]
-//（后者由 [BuffSystem] 每帧刷新），再写入 [ResolvedDamage] 并移除 Pending。
+// （后者由 [BuffSystem] 每帧刷新），再写入 [ResolvedDamage] 并移除 Pending。
 type DamageSystem struct {
 	world *ecs.World
 	q     *ecs.Query[*component.PendingDamage]

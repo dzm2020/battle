@@ -8,9 +8,13 @@ func RegisterCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&ResolvedDamage{})
 	r.Register(&Health{})
 	r.Register(&Attributes{})
-	r.Register(&BuffList{})       // Buff 运行时列表（内含 BuffInstance 缓冲）
+	r.Register(&BuffList{})      // Buff 运行时列表（内含 BuffInstance 缓冲）
 	r.Register(&StatModifiers{}) // Buff 汇总后的属性增量
-	r.Register(&ControlState{})   // Buff 汇总后的控制位
+	r.Register(&ControlState{})  // Buff 汇总后的控制位
+	r.Register(&Team{})
+	r.Register(&SkillUser{})
+	r.Register(&CastIntent{})
+	r.Register(&SkillCastState{})
 }
 
 // RegisterCombatTypesWorld 便捷封装。
