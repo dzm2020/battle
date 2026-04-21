@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"battle/ecs"
-	"battle/internal/battle/buff"
 	"battle/internal/battle/component"
 	"battle/internal/battle/skill"
 )
@@ -57,7 +56,7 @@ func TestRoom_StartBattleSettleShutdown(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	if err := r.StartBattle(ctx, buff.NewDefinitionConfig(), skill.NewCatalogConfig()); err != nil {
+	if err := r.StartBattle(ctx, skill.NewCatalogConfig()); err != nil {
 		t.Fatal(err)
 	}
 	if r.Phase() != PhaseFighting {
@@ -81,7 +80,7 @@ func TestRoom_StartBattleSettleShutdown(t *testing.T) {
 func TestRoom_StartBattleNeedsPlayers(t *testing.T) {
 	m := NewManager()
 	r, _ := m.Create("empty", 2)
-	err := r.StartBattle(context.Background(), nil, nil)
+	err := r.StartBattle(context.Background(), nil)
 	if err != ErrNoPlayers {
 		t.Fatalf("want ErrNoPlayers, got %v", err)
 	}
@@ -111,7 +110,7 @@ func TestRoom_TickUpdatesCombatWorld(t *testing.T) {
 		},
 	})
 	// Same wiring as [Room.StartBattle]: systems + dt + tick subscriber.
-	if err := joinAndStartBattleForTest(t, r, caster, buff.NewDefinitionConfig(), skillCfg); err != nil {
+	if err := joinAndStartBattleForTest(t, r, caster, skillCfg); err != nil {
 		t.Fatal(err)
 	}
 	defer r.Shutdown()
@@ -134,13 +133,13 @@ func TestRoom_TickUpdatesCombatWorld(t *testing.T) {
 }
 
 // joinAndStartBattleForTest mirrors [Room.StartBattle] but uses ctx cancel + wait instead of sleeping in tests.
-func joinAndStartBattleForTest(t *testing.T, r *Room, ent ecs.Entity, buffCfg *buff.DefinitionConfig, skillCfg *skill.CatalogConfig) error {
+func joinAndStartBattleForTest(t *testing.T, r *Room, ent ecs.Entity, skillCfg *skill.CatalogConfig) error {
 	t.Helper()
 	if err := r.Join("solo", ent); err != nil {
 		return err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	err := r.StartBattle(ctx, buffCfg, skillCfg)
+	err := r.StartBattle(ctx, skillCfg)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"battle/ecs"
-	"battle/internal/battle/buff"
 	"battle/internal/battle/component"
 	"battle/internal/battle/skill"
 )
@@ -36,7 +35,7 @@ func TestBattleEnd_TwoSides_Victory(t *testing.T) {
 	w.AddComponent(foe, &component.Attributes{})
 	w.AddComponent(caster, &component.CastIntent{SkillID: 1, Target: foe})
 
-	AddCombatSystems(w, buff.NewDefinitionConfig(), skillConfig)
+	AddCombatSystems(w, skillConfig)
 
 	var winner int
 	var battleEndCount int
@@ -68,7 +67,7 @@ func TestBattleEnd_SingleSide_NoPrematureVictory(t *testing.T) {
 	w.AddComponent(a, &component.Health{Current: 10, Max: 10})
 	w.AddComponent(b, &component.Health{Current: 10, Max: 10})
 
-	AddCombatSystems(w, buff.NewDefinitionConfig(), skill.NewCatalogConfig())
+	AddCombatSystems(w, skill.NewCatalogConfig())
 
 	var n int
 	cancel := w.Subscribe(ecs.EventBattleEnd, func(ev ecs.Event) { n++ })
@@ -93,7 +92,7 @@ func TestBattleEnd_TwoSides_AllDead_Draw(t *testing.T) {
 	w.AddComponent(e1, &component.Health{Current: 10, Max: 10})
 	w.AddComponent(e2, &component.Health{Current: 10, Max: 10})
 
-	AddCombatSystems(w, buff.NewDefinitionConfig(), skill.NewCatalogConfig())
+	AddCombatSystems(w, skill.NewCatalogConfig())
 
 	var payload int
 	var battleEndCount int

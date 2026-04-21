@@ -5,15 +5,15 @@ import (
 	"testing"
 
 	"battle/ecs"
-	"battle/internal/battle/buff"
 	"battle/internal/battle/component"
+	"battle/internal/battle/config"
 	"battle/internal/battle/skill"
 )
 
 func TestSkill_LoadJSONAndInstantDamage(t *testing.T) {
 	const raw = `[
 	  {"id":10,"resource":1,"cost":30,"cooldownFrames":2,"scope":2,"camp":0,"castFrames":0,
-	   "effects":[{"kind":0,"amount":40,"damageType":1}]}
+	   "effects":[{"kind":0,"amount":40,"damageType":2}]}
 	]`
 	skillConfig := skill.NewCatalogConfig()
 	if err := skill.LoadCatalogConfigFromJSON([]byte(strings.TrimSpace(raw)), skillConfig); err != nil {
@@ -21,8 +21,7 @@ func TestSkill_LoadJSONAndInstantDamage(t *testing.T) {
 	}
 	w := ecs.NewWorld(16)
 	component.RegisterCombatTypesWorld(w)
-	buffConfig := buff.NewDefinitionConfig()
-	AddCombatSystems(w, buffConfig, skillConfig)
+	AddCombatSystems(w, skillConfig)
 
 	caster := w.CreateEntity()
 	foe := w.CreateEntity()
@@ -64,12 +63,12 @@ func TestSkill_AoETwoTargets(t *testing.T) {
 		Camp:           skill.CampEnemy,
 		CastFrames:     0,
 		Effects: []skill.EffectConfig{
-			{Kind: skill.EffectDamage, Amount: 10, DamageType: component.DamageMagical},
+			{Kind: skill.EffectDamage, Amount: 10, DamageType: component.DamageTrue},
 		},
 	})
 	w := ecs.NewWorld(16)
 	component.RegisterCombatTypesWorld(w)
-	AddCombatSystems(w, buff.NewDefinitionConfig(), skillConfig)
+	AddCombatSystems(w, skillConfig)
 	caster := w.CreateEntity()
 	a := w.CreateEntity()
 	b := w.CreateEntity()
@@ -79,6 +78,8 @@ func TestSkill_AoETwoTargets(t *testing.T) {
 	w.AddComponent(caster, &component.SkillUser{GrantedSkillIDs: []uint32{20}})
 	w.AddComponent(a, &component.Health{Current: 50, Max: 50})
 	w.AddComponent(b, &component.Health{Current: 50, Max: 50})
+	w.AddComponent(a, &component.Attributes{})
+	w.AddComponent(b, &component.Attributes{})
 	w.AddComponent(caster, &component.CastIntent{SkillID: 20})
 
 	w.Update(0)
@@ -106,7 +107,7 @@ func TestSkill_ChannelThenResolve(t *testing.T) {
 	})
 	w := ecs.NewWorld(8)
 	component.RegisterCombatTypesWorld(w)
-	AddCombatSystems(w, buff.NewDefinitionConfig(), skillConfig)
+	AddCombatSystems(w, skillConfig)
 	caster := w.CreateEntity()
 	w.AddComponent(caster, &component.Team{Side: 1})
 	w.AddComponent(caster, &component.SkillUser{Mana: 50, GrantedSkillIDs: []uint32{30}})
@@ -136,16 +137,19 @@ func TestSkill_ChannelThenResolve(t *testing.T) {
 }
 
 func TestSkill_ApplyBuffEffect(t *testing.T) {
-	buffConfig := buff.NewDefinitionConfig()
-	buffConfig.Register(buff.DescriptorConfig{
-		ID:             900,
-		MaxStacks:      1,
-		Policy:         buff.StackMerge,
-		DurationFrames: 5,
-		Effects: []buff.EffectConfig{
-			{Kind: buff.EffectStatMod, ArmorDeltaPerStack: 3},
+	prev := config.Tab.BuffConfigConfigByID
+	config.Tab.BuffConfigConfigByID = map[int32]*config.BuffConfig{
+		900: {
+			MaxStack:      1,
+			StackBehavior: "add",
+			DurationFrame: 5,
+			Modifiers: []config.StatModifier{
+				{Stat: config.AttrArmor, Delta: 3},
+			},
 		},
-	})
+	}
+	t.Cleanup(func() { config.Tab.BuffConfigConfigByID = prev })
+
 	skillConfig := skill.NewCatalogConfig()
 	skillConfig.Register(skill.SkillConfig{
 		ID:         40,
@@ -157,7 +161,7 @@ func TestSkill_ApplyBuffEffect(t *testing.T) {
 	})
 	w := ecs.NewWorld(8)
 	component.RegisterCombatTypesWorld(w)
-	AddCombatSystems(w, buffConfig, skillConfig)
+	AddCombatSystems(w, skillConfig)
 	e := w.CreateEntity()
 	w.AddComponent(e, &component.Team{Side: 1})
 	w.AddComponent(e, &component.SkillUser{GrantedSkillIDs: []uint32{40}})

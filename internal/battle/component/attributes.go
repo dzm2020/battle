@@ -1,25 +1,5 @@
 package component
 
-import "battle/internal/battle/config"
-
-func NewAttributesFromConfigIDs(statIDs []int32) *Attributes {
-	if len(statIDs) == 0 || config.Tab.AttributeConfigByID == nil {
-		return &Attributes{}
-	}
-	m := make(map[string]int)
-	for _, id := range statIDs {
-		row, ok := config.Tab.AttributeConfigByID[id]
-		if !ok || row.Type == "" {
-			continue
-		}
-		m[string(row.Type)] = int(row.InitValue)
-	}
-	if len(m) == 0 {
-		return &Attributes{}
-	}
-	return &Attributes{Values: m}
-}
-
 type Attributes struct {
 	Values map[string]int
 }

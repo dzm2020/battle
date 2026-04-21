@@ -2,33 +2,29 @@ package system
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/buff"
 	"battle/internal/battle/component"
+	"battle/internal/battle/config"
 )
 
-// BuffSystem 递减持续时间、结算 DoT/HoT、汇总属性与控制位并写入 [StatModifiers]/[ControlState]。
+// BuffSystem 递减持续时间、汇总属性并写入 [StatModifiers]/[ControlState]。
 // 须在 [DamageSystem] 之前运行，以便本帧 DoT 写入的 [PendingDamage] 参与结算。
 type BuffSystem struct {
-	world     *ecs.World
-	buffConfig *buff.DefinitionConfig
-	q         *ecs.Query[*component.BuffList]
+	world *ecs.World
+	q     *ecs.Query[*component.BuffList]
 }
 
-// NewBuffSystem buffConfig 可为 nil（会使用空 [buff.DefinitionConfig]），正常运行时应传入已 Register 的配置表。
-func NewBuffSystem(buffConfig *buff.DefinitionConfig) *BuffSystem {
-	return &BuffSystem{buffConfig: buffConfig}
+// NewBuffSystem 使用全局 [config.Tab.BuffConfigConfigByID] 解析 Buff 模板。
+func NewBuffSystem() *BuffSystem {
+	return &BuffSystem{}
 }
 
 func (s *BuffSystem) Initialize(w *ecs.World) {
 	s.world = w
-	if s.buffConfig == nil {
-		s.buffConfig = buff.NewDefinitionConfig()
-	}
 	s.q = ecs.NewQuery[*component.BuffList](w)
 }
 
 // Update 遍历含 [component.BuffList] 的实体：先清零并重算 StatModifiers/ControlState，再逐实例
-// 聚合属性与控制、触发 DoT/HoT，最后递减 FramesLeft 并剔除到期实例。
+// 聚合属性，最后递减 FramesLeft 并剔除到期实例。
 func (s *BuffSystem) Update(dt float64) {
 	s.q.ForEach(func(e ecs.Entity, bl *component.BuffList) {
 		s.tickEntity(e, bl)
@@ -48,16 +44,23 @@ func (s *BuffSystem) tickEntity(e ecs.Entity, bl *component.BuffList) {
 		return
 	}
 
+	tab := config.Tab
+	if tab.BuffConfigConfigByID == nil {
+		bl.Buffs = nil
+		s.stripBuffAux(e)
+		s.world.RemoveComponent(e, &component.BuffList{})
+		return
+	}
+
 	alive := make([]component.BuffInstance, 0, len(bl.Buffs))
 	for i := range bl.Buffs {
 		bi := bl.Buffs[i]
-		descConfig, ok := s.buffConfig.Get(bi.DefID)
-		if !ok {
+		bc, ok := tab.BuffConfigConfigByID[int32(bi.BuffId)]
+		if !ok || bc == nil {
 			continue
 		}
 
-		s.accumulateStatic(&descConfig, &bi, mods, ctrl)
-		s.tickDOTHOT(e, &bi, &descConfig)
+		s.accumulateFromBuffConfig(bc, &bi, mods)
 
 		keep := true
 		if bi.FramesLeft >= 0 {
@@ -78,69 +81,34 @@ func (s *BuffSystem) tickEntity(e ecs.Entity, bl *component.BuffList) {
 	}
 }
 
-// accumulateStatic 将本帧仍存活实例上的 StatMod/Control 效果累加到 mods、ctrl。
-func (s *BuffSystem) accumulateStatic(desc *buff.DescriptorConfig, bi *component.BuffInstance, mods *component.StatModifiers, ctrl *component.ControlState) {
+func (s *BuffSystem) accumulateFromBuffConfig(bc *config.BuffConfig, bi *component.BuffInstance, mods *component.StatModifiers) {
 	st := bi.Stacks
 	if st < 1 {
 		st = 1
 	}
-	for _, ef := range desc.Effects {
-		switch ef.Kind {
-		case buff.EffectStatMod:
-			mods.ArmorDelta += ef.ArmorDeltaPerStack * st
-			mods.MRDelta += ef.MRDeltaPerStack * st
-			mods.AttackDamageDelta += ef.PowerDeltaPerStack * st
-		case buff.EffectControl:
-			ctrl.Flags |= ef.Control
-		default:
-		}
+	for _, sm := range bc.Modifiers {
+		applyStatModifier(mods, sm, st)
 	}
 }
 
-// tickDOTHOT 按 TickCountdown/间隔推进 DoT（[component.MergePendingDamage]，来源 0）与 HoT（[component.MergePendingHeal]）。
-// 多条 DoT/HoT 共用 DescriptorConfig 内首个 Tick 间隔（与 BuffInstance.TickCountdown 一致）。
-func (s *BuffSystem) tickDOTHOT(e ecs.Entity, bi *component.BuffInstance, desc *buff.DescriptorConfig) {
-	interval := 1
-	hasTick := false
-	for _, ef := range desc.Effects {
-		if ef.Kind == buff.EffectDoT || ef.Kind == buff.EffectHoT {
-			hasTick = true
-			interval = ef.TickIntervalFrames
-			if interval < 1 {
-				interval = 1
-			}
-			break
-		}
-	}
-	if !hasTick {
-		return
-	}
-
-	bi.TickCountdown--
-	if bi.TickCountdown >= 0 {
-		return
-	}
-
-	for _, ef := range desc.Effects {
-		st := bi.Stacks
-		if st < 1 {
-			st = 1
-		}
-		switch ef.Kind {
-		case buff.EffectDoT:
-			component.MergePendingDamage(s.world, e, ef.DamagePerTick*st, ef.DamageType, 0)
-		case buff.EffectHoT:
-			heal := ef.HealPerTick * st
-			if heal <= 0 {
-				continue
-			}
-			component.MergePendingHeal(s.world, e, heal, 0)
-		}
-	}
-
-	bi.TickCountdown = interval - 1
-	if bi.TickCountdown < 0 {
-		bi.TickCountdown = 0
+func applyStatModifier(mods *component.StatModifiers, sm config.StatModifier, stacks int) {
+	delta := int(sm.Delta) * stacks
+	switch sm.Stat {
+	case config.AttrArmor:
+		mods.ArmorDelta += delta
+	case config.AttrMagicResist:
+		mods.MRDelta += delta
+	case config.AttrAttackDamage:
+		mods.AttackDamageDelta += delta
+	case config.AttrHitPermille:
+		mods.HitDeltaPermille += delta
+	case config.AttrDodgePermille:
+		mods.DodgeDeltaPermille += delta
+	case config.AttrCritRate:
+		mods.CritRateDeltaPermille += delta
+	case config.AttrCritDamage:
+		mods.CritDamageDeltaPermille += delta
+	default:
 	}
 }
 

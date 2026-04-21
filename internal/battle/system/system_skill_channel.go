@@ -2,7 +2,6 @@ package system
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/buff"
 	"battle/internal/battle/component"
 	"battle/internal/battle/skill"
 )
@@ -13,23 +12,19 @@ import (
 type SkillChannelSystem struct {
 	world       *ecs.World
 	skillConfig *skill.CatalogConfig
-	buffConfig  *buff.DefinitionConfig
 
 	qChannel *ecs.Query[*component.SkillCastState]
 }
 
-// NewSkillChannelSystem skillConfig / buffConfig 可为 nil（内部退化为空表）。
-func NewSkillChannelSystem(skillConfig *skill.CatalogConfig, buffConfig *buff.DefinitionConfig) *SkillChannelSystem {
-	return &SkillChannelSystem{skillConfig: skillConfig, buffConfig: buffConfig}
+// NewSkillChannelSystem skillConfig 可为 nil（内部退化为空表）。
+func NewSkillChannelSystem(skillConfig *skill.CatalogConfig) *SkillChannelSystem {
+	return &SkillChannelSystem{skillConfig: skillConfig}
 }
 
 func (s *SkillChannelSystem) Initialize(w *ecs.World) {
 	s.world = w
 	if s.skillConfig == nil {
 		s.skillConfig = skill.NewCatalogConfig()
-	}
-	if s.buffConfig == nil {
-		s.buffConfig = buff.NewDefinitionConfig()
 	}
 	s.qChannel = ecs.NewQuery[*component.SkillCastState](w)
 }
@@ -49,7 +44,7 @@ func (s *SkillChannelSystem) Update(dt float64) {
 			return
 		}
 		targets := skill.ResolveTargets(s.world, e, st.PrimaryTarget, sk)
-		skill.ExecuteEffects(s.world, e, targets, sk, s.buffConfig)
+		skill.ExecuteEffects(s.world, e, targets, sk)
 		if su, ok := s.world.GetComponent(e, &component.SkillUser{}); ok {
 			startSkillCooldown(su.(*component.SkillUser), sk.ID, sk.CooldownFrames)
 		}

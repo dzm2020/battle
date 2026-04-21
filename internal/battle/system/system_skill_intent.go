@@ -3,7 +3,6 @@ package system
 import (
 	"battle/ecs"
 	"battle/internal/battle/action"
-	"battle/internal/battle/buff"
 	"battle/internal/battle/component"
 	"battle/internal/battle/skill"
 	"slices"
@@ -15,23 +14,19 @@ import (
 type SkillIntentSystem struct {
 	world       *ecs.World
 	skillConfig *skill.CatalogConfig
-	buffConfig  *buff.DefinitionConfig
 
 	qIntent *ecs.Query[*component.CastIntent]
 }
 
-// NewSkillIntentSystem skillConfig / buffConfig 可为 nil（内部退化为空表）。
-func NewSkillIntentSystem(skillConfig *skill.CatalogConfig, buffConfig *buff.DefinitionConfig) *SkillIntentSystem {
-	return &SkillIntentSystem{skillConfig: skillConfig, buffConfig: buffConfig}
+// NewSkillIntentSystem skillConfig 可为 nil（内部退化为空表）。
+func NewSkillIntentSystem(skillConfig *skill.CatalogConfig) *SkillIntentSystem {
+	return &SkillIntentSystem{skillConfig: skillConfig}
 }
 
 func (s *SkillIntentSystem) Initialize(w *ecs.World) {
 	s.world = w
 	if s.skillConfig == nil {
 		s.skillConfig = skill.NewCatalogConfig()
-	}
-	if s.buffConfig == nil {
-		s.buffConfig = buff.NewDefinitionConfig()
 	}
 	s.qIntent = ecs.NewQuery[*component.CastIntent](w)
 }
@@ -94,7 +89,7 @@ func (s *SkillIntentSystem) tryCast(caster ecs.Entity, intent *component.CastInt
 	}
 
 	targets := skill.ResolveTargets(s.world, caster, intent.Target, sk)
-	skill.ExecuteEffects(s.world, caster, targets, sk, s.buffConfig)
+	skill.ExecuteEffects(s.world, caster, targets, sk)
 	startSkillCooldown(su, sk.ID, sk.CooldownFrames)
 	removeIntent()
 }

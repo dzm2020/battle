@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"battle/ecs"
-	"battle/internal/battle/buff"
 	"battle/internal/battle/clock"
 	"battle/internal/battle/component"
 	"battle/internal/battle/skill"
@@ -127,8 +126,8 @@ func (r *Room) Leave(sessionPlayerID string) error {
 }
 
 // StartBattle 注册战斗管线、挂载 tick→World.Update 并启动独立循环协程；ctx 用于上层整体关服/撤房时取消。
-// buffConfig / skillConfig 可为 nil，将使用空配置表。
-func (r *Room) StartBattle(ctx context.Context, buffConfig *buff.DefinitionConfig, skillConfig *skill.CatalogConfig) error {
+// skillConfig 可为 nil，将使用空技能表；Buff 定义来自全局 [config.Tab]。
+func (r *Room) StartBattle(ctx context.Context, skillConfig *skill.CatalogConfig) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -163,7 +162,7 @@ func (r *Room) StartBattle(ctx context.Context, buffConfig *buff.DefinitionConfi
 	w := r.world
 	r.mu.Unlock()
 
-	system.AddCombatSystems(w, buffConfig, skillConfig)
+	system.AddCombatSystems(w, skillConfig)
 
 	dt := 1.0 / float64(r.clk.TPS())
 	loop.Add(tick.FuncSubscriber(func(_ *clock.Clock) {
