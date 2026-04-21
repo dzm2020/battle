@@ -21,7 +21,10 @@ func TestThreatTopSource_AfterDamage(t *testing.T) {
 	w.AddComponent(vic, &component.Team{Side: 2})
 	w.AddComponent(vic, &component.Health{Current: 100, Max: 100})
 	w.AddComponent(vic, &component.ThreatBook{})
-	w.AddComponent(atk, &component.Attributes{HitPermille: 1000, CritChancePermille: 0})
+	w.AddComponent(atk, &component.Attributes{Values: map[string]int{
+		component.AttrHitPermille: 1000,
+		component.AttrCritRate:    0,
+	}})
 
 	component.MergePendingDamage(w, vic, 25, component.DamagePhysical, atk)
 	w.Update(0)

@@ -1,0 +1,40 @@
+[
+  {
+    "id": "warrior",
+    "displayName": "战士",
+    "teamSide": 1,
+    "maxHp": 800,
+    "physicalPower": 75,
+    "physicalArmor": 40,
+    "magicResist": 15,
+    "initialMana": 50,
+    "grantedSkillIds": [100, 101],
+    "spawnBuffDefIds": [1]
+  },
+  {
+    "id": "mage",
+    "displayName": "法师",
+    "teamSide": 1,
+    "spawnTransform": { "x": 10, "y": 20 },
+    "maxHp": 420,
+    "physicalPower": 20,
+    "physicalArmor": 12,
+    "magicResist": 35,
+    "initialMana": 200,
+    "grantedSkillIds": [100, 102],
+    "spawnBuffDefIds": []
+  },
+  {
+    "id": "assassin",
+    "displayName": "刺客",
+    "teamSide": 1,
+    "extraComponents": ["ThreatBook"],
+    "maxHp": 520,
+    "physicalPower": 110,
+    "physicalArmor": 22,
+    "magicResist": 18,
+    "initialMana": 80,
+    "grantedSkillIds": [103, 100],
+    "spawnBuffDefIds": [2]
+  }
+]

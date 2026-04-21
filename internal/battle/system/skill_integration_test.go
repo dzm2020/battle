@@ -34,7 +34,7 @@ func TestSkill_LoadJSONAndInstantDamage(t *testing.T) {
 		CooldownRemaining: nil,
 	})
 	w.AddComponent(foe, &component.Health{Current: 100, Max: 100})
-	w.AddComponent(foe, &component.Attributes{MagicResist: 0})
+	w.AddComponent(foe, &component.Attributes{})
 	w.AddComponent(caster, &component.CastIntent{SkillID: 10, Target: foe})
 
 	w.Update(0)

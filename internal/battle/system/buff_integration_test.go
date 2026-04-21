@@ -74,7 +74,7 @@ func TestBuff_DoTPerFrame(t *testing.T) {
 	w := setupCombatWorld(buffConfig)
 	e := w.CreateEntity()
 	w.AddComponent(e, &component.Health{Current: 1000, Max: 1000})
-	w.AddComponent(e, &component.Attributes{MagicResist: 100})
+	w.AddComponent(e, &component.Attributes{Values: map[string]int{component.AttrMagicResist: 100}})
 	buff.ApplyBuff(w, buffConfig, e, 101)
 
 	w.Update(0)

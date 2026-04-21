@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "maxStacks": 3,
+    "policy": 1,
+    "durationFrames": 300,
+    "effects": [{ "kind": 0, "armorDeltaPerStack": 5 }]
+  },
+  {
+    "id": 2,
+    "maxStacks": 1,
+    "policy": 1,
+    "durationFrames": 180,
+    "effects": [{ "kind": 0, "powerDeltaPerStack": 10 }]
+  }
+]

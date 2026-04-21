@@ -89,7 +89,7 @@ func (s *BuffSystem) accumulateStatic(desc *buff.DescriptorConfig, bi *component
 		case buff.EffectStatMod:
 			mods.ArmorDelta += ef.ArmorDeltaPerStack * st
 			mods.MRDelta += ef.MRDeltaPerStack * st
-			mods.PhysicalPowerDelta += ef.PowerDeltaPerStack * st
+			mods.AttackDamageDelta += ef.PowerDeltaPerStack * st
 		case buff.EffectControl:
 			ctrl.Flags |= ef.Control
 		default:

@@ -37,21 +37,3 @@ type Health struct {
 }
 
 func (*Health) Component() {}
-
-// Attributes 基础战斗属性。部分「千分比」字段为 0 时，[DamageSystem] 使用包内默认常数（如命中 95%）。
-// 仅当 [PendingDamage].Source 非 0 时，对目标才做命中/闪避/格挡/暴击判定；Source 为 0 时只走护甲减免（如部分 DoT）。
-type Attributes struct {
-	PhysicalPower int
-	PhysicalArmor int
-	MagicResist   int
-
-	// --- 第五阶段：命中/暴击/格挡/闪避（千分比 0–1000，0=用系统默认）---
-	HitPermille         int // 命中，默认 950
-	CritChancePermille  int // 暴击率，默认 50
-	CritDamagePermille  int // 暴伤倍率，在 1000=1.0 倍基础上额外加算，如 500=+0.5 即总 1.5 倍
-	DodgePermille       int // 闪避，默认 50
-	BlockChancePermille int // 格挡触发率
-	BlockAmount         int // 格挡时固定格挡伤害量（在暴伤后、减免前）
-}
-
-func (*Attributes) Component() {}

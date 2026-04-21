@@ -38,7 +38,7 @@ type EffectConfig struct {
 	ArmorDeltaPerStack int `json:"armorDeltaPerStack,omitempty"`
 	// MRDeltaPerStack 每层对魔抗的增量；仅 EffectStatMod，汇总至 StatModifiers.MRDelta。
 	MRDeltaPerStack int `json:"mrDeltaPerStack,omitempty"`
-	// PowerDeltaPerStack 每层对 [component.Attributes].PhysicalPower 的等价增量；仅 EffectStatMod。
+	// PowerDeltaPerStack 每层对 [component.Attributes.Values]["attack_damage"] 的等价增量；仅 EffectStatMod。
 	PowerDeltaPerStack int `json:"powerDeltaPerStack,omitempty"`
 
 	// DamagePerTick 单次 DoT 一跳的基础伤害（再乘 Stacks）；仅 EffectDoT。
