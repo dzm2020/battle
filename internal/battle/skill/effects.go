@@ -16,7 +16,7 @@ func ExecuteEffects(w *ecs.World, caster ecs.Entity, targets []ecs.Entity, sk Sk
 			case EffectHeal:
 				component.MergePendingHeal(w, t, ef.Amount, caster)
 			case EffectApplyBuff:
-				buff.ApplyBuff(w, t, ef.BuffDefID)
+				buff.AddBuff(w, caster, t, ef.BuffDefID)
 			}
 		}
 	}

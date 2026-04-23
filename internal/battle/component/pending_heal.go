@@ -9,3 +9,9 @@ type PendingHeal struct {
 }
 
 func (*PendingHeal) Component() {}
+
+type PendingHealBuff struct {
+	Amount int
+}
+
+func (*PendingHealBuff) Component() {}

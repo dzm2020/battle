@@ -7,6 +7,7 @@ import (
 
 	"battle/ecs"
 	"battle/internal/battle/component"
+	"battle/internal/battle/config"
 	"battle/internal/battle/skill"
 )
 
@@ -96,7 +97,7 @@ func TestRoom_TickUpdatesCombatWorld(t *testing.T) {
 	w.AddComponent(caster, &component.Team{Side: 1})
 	w.AddComponent(foe, &component.Team{Side: 2})
 	w.AddComponent(foe, &component.Health{Current: 100, Max: 100})
-	w.AddComponent(foe, &component.Attributes{})
+	w.AddComponent(foe, &component.Attributes{Values: map[string]int{config.AttrHp: 100}})
 	skillCfg := skill.NewCatalogConfig()
 	skillCfg.Register(skill.SkillConfig{
 		ID:         99,

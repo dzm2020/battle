@@ -140,12 +140,13 @@ func TestSkill_ApplyBuffEffect(t *testing.T) {
 	prev := config.Tab.BuffConfigConfigByID
 	config.Tab.BuffConfigConfigByID = map[int32]*config.BuffConfig{
 		900: {
-			MaxStack:      1,
-			StackBehavior: "add",
-			DurationFrame: 5,
-			Modifiers: []config.StatModifier{
-				{Stat: config.AttrArmor, Delta: 3},
-			},
+			ID:             900,
+			MaxStack:       1,
+			StackBehavior:  config.BuffStackAdd,
+			DurationFrame:  5,
+			EffectType:     config.BufferEffectStatChange,
+			ParamsString:   []string{config.AttrArmor},
+			Params:         []float64{3},
 		},
 	}
 	t.Cleanup(func() { config.Tab.BuffConfigConfigByID = prev })

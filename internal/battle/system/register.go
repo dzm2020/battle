@@ -2,6 +2,7 @@ package system
 
 import (
 	"battle/ecs"
+	"battle/internal/battle/buff"
 	"battle/internal/battle/skill"
 )
 
@@ -12,7 +13,7 @@ func AddCombatSystems(w *ecs.World, skillConfig *skill.CatalogConfig) {
 	if skillConfig == nil {
 		skillConfig = skill.NewCatalogConfig()
 	}
-	w.AddSystem(NewBuffSystem())
+	w.AddSystem(buff.NewBuffSystem())
 	w.AddSystem(NewCooldownSystem())
 	w.AddSystem(NewSkillChannelSystem(skillConfig))
 	w.AddSystem(NewSkillIntentSystem(skillConfig))
