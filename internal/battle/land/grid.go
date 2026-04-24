@@ -1,9 +1,8 @@
-// Package spatial 提供均匀网格的空间分区（水平 XZ），用于 AOI / 邻近单位查询。
-package spatial
+// Package land 提供均匀网格的空间分区（水平 XZ），用于 AOI / 邻近单位查询。
+package land
 
 import (
 	"errors"
-	"sync"
 )
 
 // ErrInvalidGridConfig 边界或 cellSize 非法。
@@ -12,7 +11,7 @@ var ErrInvalidGridConfig = errors.New("spatial: invalid bounds or cellSize")
 // Unit 网格中的可移动对象；ID 可与 [battle/ecs.Entity]（uint64）对应。
 // Pos 使用水平面 X、Z（深度）；若世界使用 XY 平面，可将 component.Transform2D 的 Y 映射到 Pos.Z。
 type Unit struct {
-	ID uint64
+	ID  uint64
 	Pos struct {
 		X, Z float64
 	}
@@ -23,11 +22,10 @@ type Unit struct {
 // GridCell 单个网格单元内的单位集合。
 type GridCell struct {
 	Units map[uint64]*Unit
-	sync.RWMutex
 }
 
-// SpatialGrid 二维均匀网格空间分区（XZ 平面）。
-type SpatialGrid struct {
+// Grid 二维均匀网格空间分区（XZ 平面）。
+type Grid struct {
 	cells    [][]*GridCell
 	cellSize float64
 	width    int
@@ -37,7 +35,7 @@ type SpatialGrid struct {
 }
 
 // NewSpatialGrid 创建覆盖 [minX,maxX)×[minZ,maxZ) 的网格；要求 maxX>minX、maxZ>minZ、cellSize>0。
-func NewSpatialGrid(minX, minZ, maxX, maxZ float64, cellSize float64) (*SpatialGrid, error) {
+func NewSpatialGrid(minX, minZ, maxX, maxZ float64, cellSize float64) (*Grid, error) {
 	if cellSize <= 0 || maxX <= minX || maxZ <= minZ {
 		return nil, ErrInvalidGridConfig
 	}
@@ -60,7 +58,7 @@ func NewSpatialGrid(minX, minZ, maxX, maxZ float64, cellSize float64) (*SpatialG
 		}
 	}
 
-	return &SpatialGrid{
+	return &Grid{
 		cells:    cells,
 		cellSize: cellSize,
 		width:    width,
@@ -71,13 +69,13 @@ func NewSpatialGrid(minX, minZ, maxX, maxZ float64, cellSize float64) (*SpatialG
 }
 
 // CellSize 单元格边长。
-func (g *SpatialGrid) CellSize() float64 { return g.cellSize }
+func (g *Grid) CellSize() float64 { return g.cellSize }
 
 // Width / Height 单元格数量。
-func (g *SpatialGrid) Width() int  { return g.width }
-func (g *SpatialGrid) Height() int { return g.height }
+func (g *Grid) Width() int  { return g.width }
+func (g *Grid) Height() int { return g.height }
 
-func (g *SpatialGrid) cellIndex(x, z float64) (int, int) {
+func (g *Grid) cellIndex(x, z float64) (int, int) {
 	cx := int((x - g.minX) / g.cellSize)
 	cz := int((z - g.minZ) / g.cellSize)
 	if cx < 0 {
@@ -96,21 +94,19 @@ func (g *SpatialGrid) cellIndex(x, z float64) (int, int) {
 }
 
 // AddUnit 将单位放入当前坐标所在格子，并写入 unit 内缓存的格子索引。必须先 Add 再 Update。
-func (g *SpatialGrid) AddUnit(unit *Unit) {
+func (g *Grid) AddUnit(unit *Unit) {
 	if unit == nil {
 		return
 	}
 	cx, cz := g.cellIndex(unit.Pos.X, unit.Pos.Z)
 	cell := g.cells[cx][cz]
-	cell.Lock()
 	cell.Units[unit.ID] = unit
-	cell.Unlock()
 
 	unit.cellX, unit.cellZ = cx, cz
 }
 
 // RemoveUnit 从网格移除单位（不改变 Pos）。未加入过网格时无副作用。
-func (g *SpatialGrid) RemoveUnit(unit *Unit) {
+func (g *Grid) RemoveUnit(unit *Unit) {
 	if unit == nil {
 		return
 	}
@@ -119,13 +115,11 @@ func (g *SpatialGrid) RemoveUnit(unit *Unit) {
 		return
 	}
 	cell := g.cells[cx][cz]
-	cell.Lock()
 	delete(cell.Units, unit.ID)
-	cell.Unlock()
 }
 
 // UpdateUnit 更新坐标；若跨格则迁移。同格内只改坐标。
-func (g *SpatialGrid) UpdateUnit(unit *Unit, newX, newZ float64) {
+func (g *Grid) UpdateUnit(unit *Unit, newX, newZ float64) {
 	if unit == nil {
 		return
 	}
@@ -139,22 +133,21 @@ func (g *SpatialGrid) UpdateUnit(unit *Unit, newX, newZ float64) {
 	oldCX, oldCZ := unit.cellX, unit.cellZ
 	if oldCX >= 0 && oldCX < g.width && oldCZ >= 0 && oldCZ < g.height {
 		oldCell := g.cells[oldCX][oldCZ]
-		oldCell.Lock()
+
 		delete(oldCell.Units, unit.ID)
-		oldCell.Unlock()
+
 	}
 
 	unit.Pos.X, unit.Pos.Z = newX, newZ
 	unit.cellX, unit.cellZ = newCX, newCZ
 
 	newCell := g.cells[newCX][newCZ]
-	newCell.Lock()
 	newCell.Units[unit.ID] = unit
-	newCell.Unlock()
+
 }
 
 // GetNearbyUnits 返回与 (centerX,centerZ) 平面距离不超过 radius 的单位（圆形筛选）。
-func (g *SpatialGrid) GetNearbyUnits(centerX, centerZ, radius float64) []*Unit {
+func (g *Grid) GetNearbyUnits(centerX, centerZ, radius float64) []*Unit {
 	if radius < 0 {
 		radius = 0
 	}
@@ -175,7 +168,6 @@ func (g *SpatialGrid) GetNearbyUnits(centerX, centerZ, radius float64) []*Unit {
 				continue
 			}
 			cell := g.cells[cx][cz]
-			cell.RLock()
 			for _, u := range cell.Units {
 				dx := u.Pos.X - centerX
 				dz := u.Pos.Z - centerZ
@@ -183,7 +175,6 @@ func (g *SpatialGrid) GetNearbyUnits(centerX, centerZ, radius float64) []*Unit {
 					out = append(out, u)
 				}
 			}
-			cell.RUnlock()
 		}
 	}
 	return out
