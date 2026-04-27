@@ -2,7 +2,6 @@ package system
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/buff"
 )
 
 // AddCombatSystems 注册完整战斗管线（单帧内执行顺序）：
@@ -10,7 +9,7 @@ import (
 // 伤害结算 → 治疗结算 → 扣血 → 死亡移除 → 战斗结束判定。
 // Buff 模板见 [config.Tab.BuffConfigConfigByID]，技能配置见 [config.Tab.SkillConfigByID]。
 func AddCombatSystems(w *ecs.World) {
-	w.AddSystem(buff.NewBuffSystem())
+	w.AddSystem(&BufferSystem{})
 	w.AddSystem(&SkillCooldownSystem{})
 	w.AddSystem(&SkillCastValidationSystem{})
 	w.AddSystem(&SkillCastStateSystem{})

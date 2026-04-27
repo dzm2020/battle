@@ -86,7 +86,7 @@ func handleBufferEffectControl(world *ecs.World, e ecs.Entity, buff *component.B
 	}
 }
 
-// handleBufferEffectDamage 伤害效果（周期触发时的结算也可走同一 dict；具体合并见 [Manager.applyPeriodicEffects]）。
+// handleBufferEffectDamage 伤害效果（周期触发时的结算也可走同一 dict；列表合并见 [tickApplyBuffEffect]）。
 func handleBufferEffectDamage(world *ecs.World, e ecs.Entity, buff *component.BuffInstance, desc *config.BuffConfig) {
 	if desc == nil || len(desc.Params) < 1 {
 		log.Debug("[buff] 伤害效果：参数不足 实体=%v Buff编号=%d", e, buff.BuffId)
