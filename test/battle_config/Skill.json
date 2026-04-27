@@ -1,0 +1,22 @@
+{
+  "1": {
+    "id": 1,
+    "skill_type": 0,
+    "consume_type": 0,
+    "consume_value": 0,
+    "pre_cast_frames": 0,
+    "post_cast_frames": 0,
+    "cooldown_frames": 30,
+    "effect_ids": [10]
+  },
+  "2": {
+    "id": 2,
+    "skill_type": 0,
+    "consume_type": 0,
+    "consume_value": 0,
+    "pre_cast_frames": 0,
+    "post_cast_frames": 0,
+    "cooldown_frames": 60,
+    "effect_ids": [20]
+  }
+}

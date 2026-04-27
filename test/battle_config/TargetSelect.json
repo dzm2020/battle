@@ -1,0 +1,18 @@
+{
+  "1": {
+    "id": 1,
+    "include_self": false,
+    "max_count": 1,
+    "sort_type": 0,
+    "sort_order": 0,
+    "filters": []
+  },
+  "2": {
+    "id": 2,
+    "include_self": true,
+    "max_count": 1,
+    "sort_type": 0,
+    "sort_order": 0,
+    "filters": []
+  }
+}

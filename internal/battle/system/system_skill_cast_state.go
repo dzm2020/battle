@@ -45,7 +45,7 @@ func (s *SkillCastStateSystem) Update(dt float64) {
 			state.Phase = component.SkillStagePostCast
 			fallthrough
 		case component.SkillStagePostCast:
-			skill.ApplySkillEffects(s.world, e, state.TargetEntity, state.SkillId)
+			skill.ApplySkillEffects(s.world, e, state.SkillId)
 			//  切换到后摇阶段
 			cd := afterCastFrames(state.SkillId)
 			state.Phase = component.SkillStageAfterCast

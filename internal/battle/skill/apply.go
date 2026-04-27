@@ -8,7 +8,7 @@ import (
 
 // ApplySkillEffects 按 [config.SkillBaseConfig.EffectIDs] 顺序执行技能效果（伤害、加 Buff 等）。
 // caster：施法者；mainTarget：施法请求中的主目标（选目标 ID 为 0 时使用）。
-func ApplySkillEffects(w *ecs.World, caster, mainTarget ecs.Entity, skillID int) {
+func ApplySkillEffects(w *ecs.World, caster ecs.Entity, skillID int) {
 	if w == nil || caster == 0 || !w.EntityExists(caster) {
 		return
 	}

@@ -1,0 +1,10 @@
+{
+  "dummy": {
+    "id": "dummy",
+    "kind": 1,
+    "name": "测试木桩",
+    "stats": [1, 2],
+    "ability": [1, 2],
+    "spawnBuffDefIds": []
+  }
+}

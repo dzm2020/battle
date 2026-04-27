@@ -1,0 +1,14 @@
+{
+  "1": {
+    "ID": 1,
+    "Type": "hp",
+    "InitValue": 100,
+    "MaxValue": 99999
+  },
+  "2": {
+    "ID": 2,
+    "Type": "armor",
+    "InitValue": 10,
+    "MaxValue": 9999
+  }
+}

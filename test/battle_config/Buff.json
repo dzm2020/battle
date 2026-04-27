@@ -1,0 +1,28 @@
+{
+  "900": {
+    "id": 900,
+    "name": "测试护甲增益",
+    "type": "buff",
+    "dispellable": true,
+    "duration": 300,
+    "max_stack": 3,
+    "stack_behavior": 2,
+    "effect_type": 1,
+    "params": [3],
+    "params_string": ["armor"],
+    "cooling_frame": 0
+  },
+  "901": {
+    "id": 901,
+    "name": "测试虚弱",
+    "type": "debuff",
+    "dispellable": true,
+    "duration": 180,
+    "max_stack": 1,
+    "stack_behavior": 1,
+    "effect_type": 1,
+    "params": [-10],
+    "params_string": ["attack_damage"],
+    "cooling_frame": 0
+  }
+}
