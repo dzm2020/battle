@@ -51,7 +51,7 @@ func (s *DamageSystem) Update(dt float64) {
 		final := MitigatedDamage(raw, pd.Type, defPhys, defMag)
 
 		s.world.RemoveComponent(victim, &component.PendingDamage{})
-		s.world.AddComponent(victim, &component.ResolvedDamage{Amount: final, Source: source})
+		s.world.AddComponent(victim, &component.ResolvedDamage{Amount: final})
 	})
 }
 

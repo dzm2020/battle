@@ -51,7 +51,6 @@ func (s *HealthSystem) Update(dt float64) {
 		s.world.EmitEvent(ecs.Event{
 			Kind:       ecs.EventDamageApplied,
 			Entity:     e,
-			Attacker:   rd.Source,
 			IntPayload: rd.Amount,
 		})
 		s.world.RemoveComponent(e, &component.ResolvedDamage{})

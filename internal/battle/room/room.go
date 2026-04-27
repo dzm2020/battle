@@ -11,8 +11,7 @@ import (
 	"battle/internal/battle/tick"
 )
 
-// Room 单局战斗隔离单元：独立 [ecs.World]、阶段、Clock/Loop。
-// 生命周期阶段迁移集中在 phase_fsm.go（transitionPhase / advancePhaseLocked）。
+// Room 单局战斗隔离单元：独立 [ecs.World]、阶段字段 [Room.phase]、Clock/Loop。
 // 不依赖网络层；Gateway 只应持有 roomID 并转调 Manager/Room API。
 // 流程：大厅用 [Room.World] 创建实体并 [Join]；[StartBattle] 注册战斗系统并启动 tick；[Settle] 停循环；[Shutdown] 清场。
 type Room struct {
@@ -21,7 +20,7 @@ type Room struct {
 	tps        int
 
 	mu sync.RWMutex
-	// 房间阶段
+	// 房间当前阶段（资格 / 生命周期），仅服务端权威维护。
 	phase Phase
 	// 房间对象
 	players map[string]ecs.Entity
@@ -33,6 +32,11 @@ type Room struct {
 
 	cancel context.CancelFunc
 	runWG  sync.WaitGroup
+}
+
+// phaseIs 判断当前是否处于指定阶段；调用方必须已持有 [Room.mu] 读锁或写锁。
+func (r *Room) phaseIs(p Phase) bool {
+	return r.phase == p
 }
 
 func newRoom(id string, maxPlayers int) *Room {
@@ -79,10 +83,10 @@ func (r *Room) World() *ecs.World {
 func (r *Room) Join(sessionPlayerID string, e ecs.Entity) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.phase == PhaseClosed {
+	if r.phaseIs(PhaseClosed) {
 		return ErrRoomClosed
 	}
-	if r.phase != PhaseLobby {
+	if !r.phaseIs(PhaseLobby) {
 		return ErrWrongPhase
 	}
 	if _, ok := r.players[sessionPlayerID]; ok {
@@ -107,10 +111,10 @@ func (r *Room) Join(sessionPlayerID string, e ecs.Entity) error {
 func (r *Room) Leave(sessionPlayerID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.phase == PhaseClosed {
+	if r.phaseIs(PhaseClosed) {
 		return ErrRoomClosed
 	}
-	if r.phase != PhaseLobby {
+	if !r.phaseIs(PhaseLobby) {
 		return ErrWrongPhase
 	}
 	e, ok := r.players[sessionPlayerID]
@@ -131,11 +135,11 @@ func (r *Room) StartBattle(ctx context.Context) error {
 	}
 
 	r.mu.Lock()
-	if r.phase == PhaseClosed {
+	if r.phaseIs(PhaseClosed) {
 		r.mu.Unlock()
 		return ErrRoomClosed
 	}
-	if r.phase != PhaseLobby {
+	if !r.phaseIs(PhaseLobby) {
 		r.mu.Unlock()
 		return ErrWrongPhase
 	}
@@ -148,10 +152,8 @@ func (r *Room) StartBattle(ctx context.Context) error {
 		return ErrWrongPhase
 	}
 
-	if err := advancePhaseLocked(r, phaseEvStartBattle); err != nil {
-		r.mu.Unlock()
-		return err
-	}
+	r.setPhase(PhasePreBattle)
+
 	r.clk = clock.New(r.tps)
 	r.loop = tick.NewLoop(r.clk)
 	loopCtx, cancel := context.WithCancel(ctx)
@@ -168,10 +170,7 @@ func (r *Room) StartBattle(ctx context.Context) error {
 	}))
 
 	r.mu.Lock()
-	if err := advancePhaseLocked(r, phaseEvBattleLive); err != nil {
-		r.mu.Unlock()
-		return err
-	}
+	r.setPhase(PhaseFighting)
 
 	r.runWG.Add(1)
 	go func() {
@@ -186,15 +185,12 @@ func (r *Room) StartBattle(ctx context.Context) error {
 func (r *Room) Settle() error {
 	var cancel context.CancelFunc
 	r.mu.Lock()
-	if r.phase != PhaseFighting {
+	if !r.phaseIs(PhaseFighting) {
 		r.mu.Unlock()
 		return ErrWrongPhase
 	}
 	cancel = r.cancel
-	if err := advancePhaseLocked(r, phaseEvSettle); err != nil {
-		r.mu.Unlock()
-		return err
-	}
+	r.setPhase(PhaseSettled)
 	r.mu.Unlock()
 
 	if cancel != nil {
@@ -214,7 +210,7 @@ func (r *Room) Settle() error {
 func (r *Room) Shutdown() {
 	var cancel context.CancelFunc
 	r.mu.Lock()
-	if r.phase == PhaseClosed {
+	if r.phaseIs(PhaseClosed) {
 		r.mu.Unlock()
 		return
 	}
@@ -234,10 +230,7 @@ func (r *Room) Shutdown() {
 	}
 
 	r.mu.Lock()
-	if err := advancePhaseLocked(r, phaseEvShutdown); err != nil {
-		r.mu.Unlock()
-		return
-	}
+	r.setPhase(PhaseClosed)
 	r.players = make(map[string]ecs.Entity)
 	r.cancel = nil
 	r.loop = nil
@@ -261,4 +254,8 @@ func (r *Room) SnapshotPlayers() map[string]ecs.Entity {
 		out[k] = v
 	}
 	return out
+}
+
+func (r *Room) setPhase(next Phase) {
+	r.phase = next
 }

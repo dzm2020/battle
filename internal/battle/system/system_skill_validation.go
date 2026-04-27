@@ -13,8 +13,6 @@ type SkillCastValidationSystem struct {
 	q     *ecs.Query3[*component.SkillSet, *component.Attributes, *component.SkillCastRequest]
 }
 
-func NewSkillCastValidationSystem() *SkillCastValidationSystem { return &SkillCastValidationSystem{} }
-
 func (s *SkillCastValidationSystem) Initialize(w *ecs.World) {
 	s.world = w
 	s.q = ecs.NewQuery3[*component.SkillSet, *component.Attributes, *component.SkillCastRequest](w)

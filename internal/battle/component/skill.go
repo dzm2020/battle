@@ -58,12 +58,3 @@ type CastIntent struct {
 }
 
 func (*CastIntent) Component() {}
-
-// SkillUser 旧版技能会话数据（冷却系统与部分测试仍引用）；新施法管线以 [SkillSet] / [SkillCastRequest] 为准。
-type SkillUser struct {
-	Mana                int
-	GrantedSkillIDs     []uint32
-	CooldownRemaining   map[uint32]int
-}
-
-func (*SkillUser) Component() {}

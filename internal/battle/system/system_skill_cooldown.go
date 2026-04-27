@@ -12,8 +12,6 @@ type SkillCooldownSystem struct {
 	q     *ecs.Query[*component.SkillSet]
 }
 
-func NewSkillCooldownSystem() *SkillCooldownSystem { return &SkillCooldownSystem{} }
-
 func (s *SkillCooldownSystem) Initialize(w *ecs.World) {
 	s.world = w
 	s.q = ecs.NewQuery[*component.SkillSet](w)
