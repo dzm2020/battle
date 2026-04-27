@@ -21,6 +21,12 @@ func (s *DeathSystem) Initialize(w *ecs.World) {
 func (s *DeathSystem) Update(dt float64) {
 	s.q.ForEach(func(e ecs.Entity, h *component.Attributes) {
 		hp := h.Get(config.AttrHp)
+		if hc, ok := s.world.GetComponent(e, &component.Health{}); ok {
+			cur := hc.(*component.Health).Current
+			if hp <= 0 && cur > 0 {
+				hp = cur
+			}
+		}
 		if hp > 0 {
 			return
 		}

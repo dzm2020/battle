@@ -1,109 +1,91 @@
 package config
 
-// CampRelation 表示候选实体与施法者的阵营关系；与 TargetScopeSelf 组合时逻辑上可忽略。
-type CampRelation uint8
+// ======================= 枚举定义 =======================
+
+// SkillType 技能类型
+type SkillType int
 
 const (
-	CampEnemy           CampRelation = iota // 0：敌对阵营（与施法者 Team.Side 不同且含 Health）
-	CampAllyIncludeSelf                     // 1：友方含施法者自身
-	CampAllyExcludeSelf                     // 2：友方不含施法者
-	CampEveryone                            // 3：不限阵营（常配合 FullScreen）
-	CampSpecificSide                        // 4：仅指定 Side，配合 [SkillConfig.CampSide]
+	SkillTypeActive  SkillType = 0 // 主动技能
+	SkillTypePassive SkillType = 1 // 被动技能（预留）
 )
 
-// TargetScope 表示技能在空间上的作用方式（单体、群体几何近似、链式等）。
-// JSON 数值从 1 起；**0 保留为非法**，表示未正确配置 scope。
-type TargetScope uint8
+// AttributeType 消耗属性类型
+type AttributeType int
 
 const (
-	_ TargetScope = iota // 0：非法；禁止在 JSON 中省略 scope 或使用 0
-
-	TargetScopeSelf       // 1：仅施法者自身，忽略 CastIntent.Target 语义上的「指向」
-	TargetScopeSingle     // 2：单体；主目标为 CastIntent.Target，合法性由 Camp 约束
-	TargetScopeCone       // 3：扇形（当前与圆共用：先按 Camp 取候选，再以 aoeRadius + Transform2D 裁剪）
-	TargetScopeCircle     // 4：圆形；锚点优先为主目标实体坐标，无主目标则用施法者
-	TargetScopeLineRect   // 5：直线/矩形（当前实现同 Circle 的球筛选）
-	TargetScopeMulti      // 6：场上符合 Camp 的全员多目标（文档中「全体敌方/友方」的基础形态）
-	TargetScopeFullScreen // 7：除施法者外全场带 Team+Health 的单位，再按 Camp 缩小
-	TargetScopeChain      // 8：链式；首跳为 CastIntent.Target，后续从同 Camp 候选中扩展
-	TargetScopeRandom     // 9：从候选中随机取若干（个数见 MaxTargets，默认 3）
+	AttrNone   AttributeType = 0 // 无消耗
+	AttrHP     AttributeType = 1 // 生命值
+	AttrMP     AttributeType = 2 // 法力值
+	AttrEnergy AttributeType = 3 // 能量
+	AttrRage   AttributeType = 4 // 怒气
 )
 
-// PickRule 在 Buff 过滤之后、MaxTargets 截断之前，对候选列表排序（或保持无序）。
-// 最近/最远依赖施法者与目标上的 [component.Transform2D]。
-type PickRule uint8
+// EffectType 技能效果类型
+type EffectType int
 
 const (
-	PickNone          PickRule = iota // 0：不排序，顺序由 ECS 遍历与收集顺序决定
-	PickNearest                       // 1：距施法者距离升序（缺坐标的目标视为无穷远）
-	PickFarthest                      // 2：距施法者距离降序
-	PickHPCurrentAsc                  // 3：当前生命值升序（斩杀/补刀倾向）
-	PickHPPercentAsc                  // 4：当前生命/最大生命升序（群体治疗常用）
-	PickAttackHighest                 // 5：Attributes.Values["attack_damage"] 降序；无 Attributes 视为 0
+	EffectDamage  EffectType = 1 // 造成伤害
+	EffectAddBuff EffectType = 2 // 添加Buff
+	EffectSummon  EffectType = 3 // 召唤单位
+	EffectBlink   EffectType = 4 // 闪现/瞬移
+	EffectResetCD EffectType = 5 // 重置冷却
 )
 
-type EffectType string
+// CompareOp 比较运算符
+type CompareOp int
 
 const (
-	// 伤害类
-	EffectDamageDirect   EffectType = "damage_direct"    // 直接伤害
-	EffectDamageOverTime EffectType = "damage_over_time" // 持续伤害
-
-	// 治疗与护盾
-	EffectHealDirect   EffectType = "heal_direct"    // 直接治疗
-	EffectHealOverTime EffectType = "heal_over_time" // 持续治疗
-	EffectShield       EffectType = "shield"         // 添加护盾
-
-	// 属性修改（Buff/Debuff）
-	EffectModifyStat EffectType = "modify_stat" // 修改一个或多个属性（攻击力、护甲等）
-	EffectModifyMana EffectType = "modify_mana" // 增加/减少法力值
-
-	// 控制效果
-	EffectStun      EffectType = "stun"      // 眩晕
-	EffectRoot      EffectType = "root"      // 定身（不能移动，可攻击）
-	EffectSilence   EffectType = "silence"   // 沉默（不能施法）
-	EffectTaunt     EffectType = "taunt"     // 嘲讽
-	EffectKnockback EffectType = "knockback" // 击退
-	EffectFear      EffectType = "fear"      // 恐惧
-
-	// 特殊机制
-	EffectSummon   EffectType = "summon"   // 召唤单位
-	EffectTeleport EffectType = "teleport" // 传送
-	EffectRevive   EffectType = "revive"   // 复活
-	EffectCleanse  EffectType = "cleanse"  // 净化所有负面效果
-
-	// 添加Buff
-	EffectApplyBuff EffectType = "apply_buff" // 添加Buff
+	OpEqual        CompareOp = 1 // ==
+	OpNotEqual     CompareOp = 2 // !=
+	OpGreater      CompareOp = 3 // >
+	OpLess         CompareOp = 4 // <
+	OpGreaterEqual CompareOp = 5 // >=
+	OpLessEqual    CompareOp = 6 // <=
 )
 
-type EffectConfig struct {
-	Type   EffectType             `json:"type" yaml:"type"`
-	Params map[string]interface{} `json:"params" yaml:"params"` // key:参数名 value:参数值
+// ConditionType 被动条件类型（用于被动条件配置表）
+type ConditionType int
+
+const (
+	CondOnSkillCast   ConditionType = 1 // 当释放某个技能时
+	CondOnTakeDamage  ConditionType = 2 // 当受到伤害时
+	CondOnDealDamage  ConditionType = 3 // 当造成伤害时
+	CondOnBuffApplied ConditionType = 4 // 当获得Buff时
+	CondOnHealthBelow ConditionType = 5 // 当生命值低于某比例时
+)
+
+// ======================= 配置结构体 =======================
+
+// SkillBaseConfig 技能基础配置
+type SkillBaseConfig struct {
+	ID              int           `json:"id"`               // 技能ID
+	SkillType       SkillType     `json:"skill_type"`       // 技能类型（主动/被动）
+	ConsumeType     AttributeType `json:"consume_type"`     // 消耗属性类型
+	ConsumeValue    int           `json:"consume_value"`    // 消耗值
+	PreCastFrames   int           `json:"pre_cast_frames"`  // 前摇帧数
+	AfterCastFrames int           `json:"post_cast_frames"` // 后摇帧数
+	CooldownFrames  int           `json:"cooldown_frames"`  // 冷却帧数
+	EffectIDs       []int         `json:"effect_ids"`       // 技能效果ID列表（按顺序执行）
 }
 
-// SkillConfig
-// @Description: 技能配置
-type SkillConfig struct {
-	ID uint32 `json:"id"` // 全局唯一
-	// 消耗
-	Resource Attribute `json:"resource"` // 消耗哪种属性
-	Cost     int       `json:"cost"`     // 单次施放扣除量；与 ResourceNone 组合时须为 0
+// SkillEffectConfig 技能效果配置
+type SkillEffectConfig struct {
+	EffectID       int        `json:"effect_id"`        // 效果ID
+	EffectType     EffectType `json:"effect_type"`      // 效果类型
+	IntParams      []int      `json:"int_params"`       // 整数参数列表
+	StringParams   []string   `json:"string_params"`    // 字符串参数列表
+	TargetSelectID int        `json:"target_select_id"` // 选取目标配置ID（0表示不需要目标）
+}
 
-	// --- 目标选取三维度（必填 scope、camp；pickRule 可选）---
-	Camp             CampRelation `json:"camp"`                       // 阵营：敌方/友方/全体等；敌方为 JSON 数值 0
-	Scope            TargetScope  `json:"scope"`                      // 作用范围：单体/群体/链式等；JSON 值为 0 表示非法配置
-	PickRule         PickRule     `json:"pickRule,omitempty"`         // 选取规则：最近、血量排序等；0 表示不排序
-	CampSide         uint8        `json:"campSide,omitempty"`         // 仅 CampSpecificSide：指定 Team.Side
-	AOERadius        float64      `json:"aoeRadius,omitempty"`        // 球半径；与 Cone/Circle/Multi 等组合时筛选距离；0 表示不做距离裁剪
-	RequireBuffDefID uint32       `json:"requireBuffDefId,omitempty"` // 候选目标必须携带该 Buff 模板 ID
-	ForbidBuffDefID  uint32       `json:"forbidBuffDefId,omitempty"`  // 候选目标不得携带该 Buff 模板 ID
+// ======================= 被动技能相关 =======================
 
-	MaxTargets int `json:"maxTargets,omitempty"` // 选取目标数 排序后至多保留多少个目标；随机模式缺省时内部另有默认次数
-
-	// 前摇  后摇
-	PreCastDelay  float64 `json:"pre_cast_delay" yaml:"pre_cast_delay"`   // 前摇时间
-	PostCastDelay float64 `json:"post_cast_delay" yaml:"post_cast_delay"` // 后摇时间
-	Interruptible bool    `json:"interruptible" yaml:"interruptible"`     // 可选：是否可被打断（前摇期间）
-	// 效果
-	Effects []EffectConfig `json:"effects"` // 命中目标集后依次执行的效果链
+// PassiveConditionConfig 被动条件配置表
+// 描述被动技能的触发条件和触发后的效果（通常触发后执行一组效果ID）
+type PassiveConditionConfig struct {
+	ID               int           `json:"id"`                 // 条件配置ID
+	ConditionType    ConditionType `json:"condition_type"`     // 条件类型
+	IntParams        []int         `json:"int_params"`         // 条件参数（整数）
+	StringParams     []string      `json:"string_params"`      // 条件参数（字符串）
+	TriggerEffectIDs []int         `json:"trigger_effect_ids"` // 触发时执行的效果ID列表
 }

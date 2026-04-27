@@ -15,6 +15,8 @@ func RegisterCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&PendingHealBuff{})   // Buff 汇总后的治疗
 	r.Register(&Team{})
 	r.Register(&Transform2D{})
+	r.Register(&SkillSet{})
+	r.Register(&SkillCastRequest{})
 	r.Register(&SkillUser{})
 	r.Register(&CastIntent{})
 	r.Register(&SkillCastState{})

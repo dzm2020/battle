@@ -2,23 +2,51 @@ package component
 
 import "battle/ecs"
 
-// SkillUser 战斗单位可施放技能的运行时状态：资源池、已学会技能列表与冷却表。
-// 静态数值（消耗、冷却时长、效果）来自 [skill.CatalogConfig]，不在组件内重复存储。
-type SkillUser struct {
-	// Mana / Rage / Energy 三种资源槽；具体技能消耗哪种由 [skill.SkillConfig.Resource] 决定。
-	Mana   int
-	Rage   int
-	Energy int
-
-	// GrantedSkillIDs 当前允许施放的技能模板 ID 列表（须在 [skill.CatalogConfig] 中存在）。
-	GrantedSkillIDs []uint32
-
-	// CooldownRemaining 记录技能 ID → 剩余冷却帧数；<=0 的条目应在 [system.CooldownSystem] 中删除。
-	// nil 表示从未进入过冷却，等同于“无条目”。
-	CooldownRemaining map[uint32]int
+// SkillCastRequest
+// @Description: 请求释放技能
+type SkillCastRequest struct {
+	SkillID      int32      // 技能ID
+	TargetEntity ecs.Entity // 主目标实体（若无目标则存Invalid）
+	CastPosition Vector2    // 释放位置（用于地面目标技能）
+	Frame        int        // 请求发出的帧号（用于优先级/取消）
 }
 
-func (*SkillUser) Component() {}
+func (*SkillCastRequest) Component() {}
+
+type SkillStage = int
+
+const (
+	SkillStageNone      SkillStage = iota
+	SkillStagePreCast              // 前摇
+	SkillStagePostCast             // 释放
+	SkillStageAfterCast            // 后摇
+)
+
+type RuntimeSkill struct {
+	ConfigID        int // 技能配置ID（对应SkillBaseConfig）
+	CurrentCooldown int // 当前剩余冷却帧数（0表示可用）
+}
+
+// SkillSet
+// @Description: 玩家拥有技能集合
+type SkillSet struct {
+	Skills []*RuntimeSkill
+}
+
+func (*SkillSet) Component() {}
+
+// SkillCastState
+// @Description: 技能释放状态
+type SkillCastState struct {
+	IsCasting       bool       // 是否正在释放技能
+	SkillId         int        // 正在释放的技能ID
+	RemainingFrames int        // 当前阶段剩余帧数
+	TargetEntity    ecs.Entity // 记录释放时的主目标
+	CastPosition    *Vector2
+	Phase           SkillStage // 技能阶段
+}
+
+func (*SkillCastState) Component() {}
 
 // CastIntent 由外部玩法层写入，表示“本实体希望施放某技能”；[system.SkillIntentSystem] 消费后应移除组件。
 // 同一实体同一帧至多处理一次意图（后者覆盖前者由玩法层避免）。
@@ -31,14 +59,11 @@ type CastIntent struct {
 
 func (*CastIntent) Component() {}
 
-// SkillCastState 吟唱/引导中的状态；FramesLeft 每帧递减，归零当帧结算效果并进入冷却。
-// 与 CastIntent 互斥：吟唱期间不应再写入新的 CastIntent（应由玩法层阻止）。
-type SkillCastState struct {
-	SkillID uint32
-	// PrimaryTarget 施放开始时锁定；自身技能时可为 0。
-	PrimaryTarget ecs.Entity
-	// FramesLeft 剩余吟唱帧；初始化为 [skill.SkillConfig].CastFrames（>0）。
-	FramesLeft int
+// SkillUser 旧版技能会话数据（冷却系统与部分测试仍引用）；新施法管线以 [SkillSet] / [SkillCastRequest] 为准。
+type SkillUser struct {
+	Mana                int
+	GrantedSkillIDs     []uint32
+	CooldownRemaining   map[uint32]int
 }
 
-func (*SkillCastState) Component() {}
+func (*SkillUser) Component() {}
