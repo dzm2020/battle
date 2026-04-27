@@ -3,6 +3,7 @@ package buff
 import (
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/log"
 )
 
 func init() {
@@ -42,8 +43,10 @@ func stackPolicyReplace(new *component.BuffInstance, desc *config.BuffConfig, bl
 	idx := findDefIndex(bl.Buffs, desc.ID)
 	if idx < 0 {
 		bl.Buffs = append(bl.Buffs, new)
+		log.Debug("[buff] 叠层·替换策略：新增实例 模板编号=%d", desc.ID)
 	} else {
 		bl.Buffs[idx] = new
+		log.Debug("[buff] 叠层·替换策略：替换已有槽位 模板编号=%d", desc.ID)
 	}
 	return true
 }
@@ -52,9 +55,11 @@ func stackPolicyRefresh(new *component.BuffInstance, desc *config.BuffConfig, bl
 	idx := findDefIndex(bl.Buffs, desc.ID)
 	if idx < 0 {
 		bl.Buffs = append(bl.Buffs, new)
+		log.Debug("[buff] 叠层·刷新策略：新增实例 模板编号=%d", desc.ID)
 		return true
 	}
 	bl.Buffs[idx].DurationFrame = desc.DurationFrame
+	log.Debug("[buff] 叠层·刷新策略：刷新持续时间 模板编号=%d 剩余帧=%d", desc.ID, desc.DurationFrame)
 	return true
 }
 
@@ -62,18 +67,22 @@ func stackPolicyAdd(new *component.BuffInstance, desc *config.BuffConfig, bl *co
 	idx := findDefIndex(bl.Buffs, desc.ID)
 	if idx < 0 {
 		bl.Buffs = append(bl.Buffs, new)
+		log.Debug("[buff] 叠层·叠加策略：新增实例 模板编号=%d", desc.ID)
 		return true
 	}
 	b := bl.Buffs[idx]
 	b.Stacks++
 	b.DurationFrame = desc.DurationFrame
+	log.Debug("[buff] 叠层·叠加策略：当前层数=%d 模板编号=%d", b.Stacks, desc.ID)
 	return true
 }
 
 func stackPolicyIgnore(new *component.BuffInstance, desc *config.BuffConfig, bl *component.BuffList) bool {
 	if findDefIndex(bl.Buffs, desc.ID) >= 0 {
+		log.Debug("[buff] 叠层·忽略策略：已存在相同模板 模板编号=%d，忽略本次施加", desc.ID)
 		return false
 	}
 	bl.Buffs = append(bl.Buffs, new)
+	log.Debug("[buff] 叠层·忽略策略：新增实例 模板编号=%d", desc.ID)
 	return true
 }

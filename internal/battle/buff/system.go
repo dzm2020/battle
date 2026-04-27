@@ -3,6 +3,7 @@ package buff
 import (
 	"battle/ecs"
 	"battle/internal/battle/component"
+	"battle/internal/battle/log"
 )
 
 // System 递减持续时间、汇总属性并写入 [StatModifiers]/[ControlState]。
@@ -22,6 +23,7 @@ func (s *System) Initialize(w *ecs.World) {
 	s.world = w
 	s.q = ecs.NewQuery[*component.BuffList](w)
 	s.manager = NewManager(w)
+	log.Info("[buff] Buff 系统已初始化")
 }
 
 // Update 遍历含 [component.BuffList] 的实体：先清零并重算 StatModifiers/ControlState，再逐实例

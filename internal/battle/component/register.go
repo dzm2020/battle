@@ -21,7 +21,6 @@ func RegisterCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&CastIntent{})
 	r.Register(&SkillCastState{})
 	r.Register(&PendingHeal{})
-	r.Register(&ThreatBook{})
 
 }
 
