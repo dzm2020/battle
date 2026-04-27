@@ -51,3 +51,6 @@ func GetSkillConfigByID(id int32) *SkillBaseConfig {
 func GetTargetSelectConfigByID(id int32) *TargetSelectConfig {
 	return Tab.TargetSelectConfigByID[id]
 }
+func GetSkillEffectConfigByID(id int32) *SkillEffectConfig {
+	return Tab.SkillEffectConfigByID[id]
+}

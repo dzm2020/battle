@@ -20,20 +20,13 @@ func ApplySkillEffects(w *ecs.World, caster, mainTarget ecs.Entity, skillID int)
 		return
 	}
 	for _, eid := range desc.EffectIDs {
-		eff := lookupSkillEffect(tab, int32(eid))
-		if eff == nil {
-			continue
-		}
-		targets := target_selector.SelectTargets(w, caster, mainTarget, int32(eff.TargetSelectID))
+		effectDesc := config.GetSkillEffectConfigByID(int32(eid))
+		//  选取目标
+		targets := target_selector.Select(w, caster, int32(effectDesc.TargetSelectID))
+		targets = append([]ecs.Entity{mainTarget}, targets...)
+		//  执行效果
 		for _, t := range targets {
-			applySkillEffect(w, caster, t, eff)
+			applySkillEffect(w, caster, t, effectDesc)
 		}
 	}
-}
-
-func lookupSkillEffect(tab *config.Tables, id int32) *config.SkillEffectConfig {
-	if tab == nil || tab.SkillEffectConfigByID == nil {
-		return nil
-	}
-	return tab.SkillEffectConfigByID[id]
 }

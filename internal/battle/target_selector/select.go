@@ -6,8 +6,8 @@ import (
 	"battle/internal/battle/config"
 )
 
-// SelectTargets 根据 [config.TargetSelectConfigByID] 选取实体列表。
-func SelectTargets(w *ecs.World, caster ecs.Entity, selectID int32) []ecs.Entity {
+// Select 根据 [config.TargetSelectConfigByID] 选取实体列表。
+func Select(w *ecs.World, caster ecs.Entity, selectID int32) []ecs.Entity {
 	if w == nil || caster == 0 || !w.EntityExists(caster) {
 		return nil
 	}
