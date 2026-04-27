@@ -12,18 +12,19 @@ func ApplySkillEffects(w *ecs.World, caster, mainTarget ecs.Entity, skillID int)
 	if w == nil || caster == 0 || !w.EntityExists(caster) {
 		return
 	}
-	tab := config.Tab
 
-	desc := tab.SkillConfigByID[int32(skillID)]
+	desc := config.GetSkillConfigByID(int32(skillID))
 
 	if desc == nil {
 		return
 	}
 	for _, eid := range desc.EffectIDs {
 		effectDesc := config.GetSkillEffectConfigByID(int32(eid))
+		if effectDesc == nil {
+			continue
+		}
 		//  选取目标
 		targets := target_selector.Select(w, caster, int32(effectDesc.TargetSelectID))
-		targets = append([]ecs.Entity{mainTarget}, targets...)
 		//  执行效果
 		for _, t := range targets {
 			applySkillEffect(w, caster, t, effectDesc)
