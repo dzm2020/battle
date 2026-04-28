@@ -1,33 +1,42 @@
 package room
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
+
+var manager = NewManager()
+
+func GetManager() *Manager {
+	return manager
+}
 
 // Manager 全局房间表：多房间隔离；与单个 Room 的内锁分层，避免把整张 map 锁进 Room 逻辑。
 type Manager struct {
 	mu    sync.RWMutex
-	rooms map[string]*Room
+	rooms map[uint64]IRoom
+	id    atomic.Uint64
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		rooms: make(map[string]*Room),
+		rooms: make(map[uint64]IRoom),
 	}
 }
+func (m *Manager) NextID() uint64 {
+	roomId := m.id.Add(1)
+	return roomId
+}
 
-// Create 创建空房间；id 重复返回 ErrRoomExists。
-func (m *Manager) Create(id string, maxPlayers int) (*Room, error) {
+func (m *Manager) Add(r IRoom) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if _, ok := m.rooms[id]; ok {
-		return nil, ErrRoomExists
-	}
-	r := newRoom(id, maxPlayers)
-	m.rooms[id] = r
-	return r, nil
+
+	m.rooms[r.ID()] = r
 }
 
 // Get 读侧查找。
-func (m *Manager) Get(id string) (*Room, bool) {
+func (m *Manager) Get(id uint64) (IRoom, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	r, ok := m.rooms[id]
@@ -35,14 +44,14 @@ func (m *Manager) Get(id string) (*Room, bool) {
 }
 
 // Remove 仅从管理器删除引用；不调用 Room.Shutdown，适合已自行 Shutdown 的场景。
-func (m *Manager) Remove(id string) {
+func (m *Manager) Remove(id uint64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.rooms, id)
 }
 
 // Destroy 撤房并移出管理表（幂等：房间不存在则忽略）。
-func (m *Manager) Destroy(id string) {
+func (m *Manager) Destroy(id uint64) {
 	m.mu.RLock()
 	r, ok := m.rooms[id]
 	m.mu.RUnlock()

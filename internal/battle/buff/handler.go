@@ -38,7 +38,7 @@ func applyEffect(world *ecs.World, e ecs.Entity, buff *component.BuffInstance, d
 func handleBufferEffectStatChange(world *ecs.World, e ecs.Entity, buff *component.BuffInstance, desc *config.BuffConfig) {
 	mods := ecs.EnsureGetComponent[*component.StatModifiers](world, e)
 	if len(desc.ParamsString) < 1 || len(desc.Params) < 1 {
-		log.Debug("[buff] 属性变更效果：参数不足 实体=%v Buff编号=%d", e, buff.BuffId)
+		log.Error("[buff] 属性变更效果：参数不足 实体=%v Buff编号=%d", e, buff.BuffId)
 		return
 	}
 	key := desc.ParamsString[0]
@@ -59,8 +59,9 @@ func handleBufferEffectStatChange(world *ecs.World, e ecs.Entity, buff *componen
 	case config.AttrCritDamage:
 		mods.CritDamageDeltaPermille += delta
 	default:
-		log.Debug("[buff] 属性变更效果：未识别的属性键 实体=%v Buff编号=%d 键=%s", e, buff.BuffId, key)
+		log.Error("[buff] 属性变更效果：未识别的属性键 实体=%v Buff编号=%d 键=%s", e, buff.BuffId, key)
 	}
+	log.Info("[buff] 属性变更效果 实体=%v Buff编号=%d 键=%s mods=%+v", e, buff.BuffId, key, mods)
 }
 
 // handleBufferEffectControl 控制效果

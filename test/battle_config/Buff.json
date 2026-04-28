@@ -24,5 +24,44 @@
     "params": [-10],
     "params_string": ["attack_damage"],
     "cooling_frame": 0
+  },
+  "902": {
+    "id": 902,
+    "name": "测试忽略重复施加",
+    "type": "debuff",
+    "dispellable": true,
+    "duration": 300,
+    "max_stack": 1,
+    "stack_behavior": 4,
+    "effect_type": 1,
+    "params": [1],
+    "params_string": ["armor"],
+    "cooling_frame": 0
+  },
+  "903": {
+    "id": 903,
+    "name": "测试替换槽位",
+    "type": "buff",
+    "dispellable": true,
+    "duration": 300,
+    "max_stack": 3,
+    "stack_behavior": 3,
+    "effect_type": 1,
+    "params": [2],
+    "params_string": ["armor"],
+    "cooling_frame": 0
+  },
+  "904": {
+    "id": 904,
+    "name": "测试眩晕",
+    "type": "debuff",
+    "dispellable": true,
+    "duration": 60,
+    "max_stack": 1,
+    "stack_behavior": 1,
+    "effect_type": 2,
+    "params": [],
+    "params_string": ["stun"],
+    "cooling_frame": 0
   }
 }

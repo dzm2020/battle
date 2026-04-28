@@ -6,13 +6,17 @@ import (
 	"testing"
 
 	"battle/ecs"
+	"battle/internal/battle/attributes"
 	"battle/internal/battle/buff"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/control"
+	"battle/internal/battle/room"
+	"battle/internal/battle/system"
+	"battle/internal/battle/unit"
 )
 
-// battleConfigDir 返回与本文件同目录下的 battle_config 绝对路径（不依赖进程工作目录）。
-func battleConfigDir(t *testing.T) string {
+func battleConfigDirForBuff(t *testing.T) string {
 	t.Helper()
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
@@ -21,151 +25,201 @@ func battleConfigDir(t *testing.T) string {
 	return filepath.Clean(filepath.Join(filepath.Dir(file), "battle_config"))
 }
 
-func restoreConfigTab(t *testing.T, prev *config.Tables) {
-	t.Helper()
-	t.Cleanup(func() {
-		config.Tab = prev
-	})
-}
-
-func loadFixtureConfig(t *testing.T) {
-	t.Helper()
-	prev := config.Tab
-	config.Load(battleConfigDir(t))
-	restoreConfigTab(t, prev)
-}
-
-func swapConfigTab(t *testing.T, tab *config.Tables) {
-	t.Helper()
-	prev := config.Tab
-	config.Tab = tab
-	restoreConfigTab(t, prev)
-}
-
-func TestBuff_Fixture_AddBuff900(t *testing.T) {
-	loadFixtureConfig(t)
-
-	w := ecs.NewWorld(64)
-	component.RegisterCombatTypesWorld(w)
-	caster := w.CreateEntity()
-	target := w.CreateEntity()
-
-	if ok := buff.AddBuff(w, caster, target, 900); !ok {
-		t.Fatal("AddBuff(900) 期望成功")
-	}
-	bl, ok := w.GetComponent(target, &component.BuffList{})
-	if !ok {
-		t.Fatal("目标缺少 BuffList")
-	}
-	list := bl.(*component.BuffList)
-	if len(list.Buffs) != 1 {
-		t.Fatalf("实例数期望 1，实际 %d", len(list.Buffs))
-	}
-	if list.Buffs[0].BuffId != 900 || list.Buffs[0].Stacks != 1 {
-		t.Fatalf("实例异常: %+v", list.Buffs[0])
-	}
-	if buff.AddBuff(w, caster, target, 0) {
-		t.Fatal("Buff 编号为 0 时应失败")
-	}
-}
-
-func TestBuff_StackAdd_SecondApply_IncrementsStacks(t *testing.T) {
-	loadFixtureConfig(t)
-
-	w := ecs.NewWorld(8)
-	component.RegisterCombatTypesWorld(w)
-	caster := w.CreateEntity()
-	target := w.CreateEntity()
-
-	if !buff.AddBuff(w, caster, target, 900) || !buff.AddBuff(w, caster, target, 900) {
-		t.Fatal("fixture 中 900 为叠加策略，两次施加应成功")
-	}
-	bl, _ := w.GetComponent(target, &component.BuffList{})
-	list := bl.(*component.BuffList)
-	if len(list.Buffs) != 1 {
-		t.Fatalf("叠加后仍为单槽，实例数=%d", len(list.Buffs))
-	}
-	if list.Buffs[0].Stacks != 2 {
-		t.Fatalf("层数期望 2，实际 %d", list.Buffs[0].Stacks)
-	}
-}
-
-func TestBuff_StackIgnore_SecondApplyFails(t *testing.T) {
-	tab := &config.Tables{
-		BuffConfigConfigByID: map[int32]*config.BuffConfig{
-			701: {
-				ID:            701,
-				DurationFrame: 60,
-				MaxStack:      5,
-				StackBehavior: config.BuffStackIgnore,
-				EffectType:    config.BufferEffectStatChange,
-				ParamsString:  []string{config.AttrArmor},
-				Params:        []float64{1},
-				CoolingFrame:  0,
+// testPlayer 与 room_test 一致：50 HP，与怪物（模板 hp=100）区分。
+func testPlayerForBuff() *unit.Player {
+	return &unit.Player{
+		ID: 1,
+		Units: map[uint32]*unit.PlayerUnit{
+			1: {
+				ID: 1,
+				Stats: []attributes.Attribute{
+					{Type: config.AttrHp, InitValue: 50, MaxValue: 50},
+				},
+				Ability: []int32{1},
 			},
 		},
 	}
-	swapConfigTab(t, tab)
-
-	w := ecs.NewWorld(8)
-	component.RegisterCombatTypesWorld(w)
-	caster := w.CreateEntity()
-	target := w.CreateEntity()
-
-	if !buff.AddBuff(w, caster, target, 701) {
-		t.Fatal("首次施加应成功")
-	}
-	if buff.AddBuff(w, caster, target, 701) {
-		t.Fatal("忽略策略下第二次施加应失败")
-	}
-	bl, _ := w.GetComponent(target, &component.BuffList{})
-	if n := len(bl.(*component.BuffList).Buffs); n != 1 {
-		t.Fatalf("实例数期望 1，实际 %d", n)
-	}
 }
 
-func TestBuff_Tick_AppliesArmorStatModifier(t *testing.T) {
-	loadFixtureConfig(t)
-
-	w := ecs.NewWorld(8)
-	component.RegisterCombatTypesWorld(w)
-	caster := w.CreateEntity()
-	target := w.CreateEntity()
-
-	if !buff.AddBuff(w, caster, target, 900) {
-		t.Fatal("施加失败")
+func findPlayerEntity(t *testing.T, w *ecs.World) ecs.Entity {
+	t.Helper()
+	var ent ecs.Entity
+	ecs.NewQuery[*component.Health](w).ForEach(func(e ecs.Entity, h *component.Health) {
+		if h.Current == 50 {
+			ent = e
+		}
+	})
+	if ent == 0 {
+		t.Fatal("未找到玩家实体（期望 Current HP=50）")
 	}
-	bl, _ := w.GetComponent(target, &component.BuffList{})
-	list := bl.(*component.BuffList)
+	return ent
+}
 
-	buff.Tick(w, target, list)
-
-	sm, ok := w.GetComponent(target, &component.StatModifiers{})
+func buffStacks(t *testing.T, w *ecs.World, e ecs.Entity, buffID uint32) int {
+	t.Helper()
+	c, ok := w.GetComponent(e, &component.BuffList{})
 	if !ok {
-		t.Fatal("Tick 后应写入 StatModifiers")
+		t.Fatal("缺少 BuffList")
 	}
-	mod := sm.(*component.StatModifiers)
-	want := int(3 * list.Buffs[0].Stacks)
-	if mod.ArmorDelta != want {
-		t.Fatalf("护甲增量期望 %d（fixture params 3×层数），实际 %d", want, mod.ArmorDelta)
+	bl, _ := c.(*component.BuffList)
+	if bl == nil {
+		t.Fatal("BuffList 类型断言失败")
 	}
+	for _, bi := range bl.Buffs {
+		if bi.BuffId == buffID {
+			return bi.Stacks
+		}
+	}
+	t.Fatalf("未找到 BuffId=%d", buffID)
+	return 0
 }
 
-func TestBuff_RemoveBuff_Manual(t *testing.T) {
-	loadFixtureConfig(t)
+// TestBuff 沿房间创建后的 ECS 世界注册战斗管线，每帧 [World.Update] 驱动 Buff 汇总，
+// 覆盖叠层策略与若干效果类型（属性 / 控制）。
+func TestBuff(t *testing.T) {
+	dir := battleConfigDirForBuff(t)
+	dt := 1.0 / 60.0
 
-	w := ecs.NewWorld(8)
-	component.RegisterCombatTypesWorld(w)
-	target := w.CreateEntity()
-	if !buff.AddBuff(w, target, target, 900) {
-		t.Fatal("施加失败")
-	}
-	bl, _ := w.GetComponent(target, &component.BuffList{})
-	list := bl.(*component.BuffList)
+	t.Run("叠加·层数相加900", func(t *testing.T) {
+		config.Load(dir)
+		r, err := room.CreateRoom(1, []*unit.Player{testPlayerForBuff()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := r.World()
+		system.AddCombatSystems(w)
+		e := findPlayerEntity(t, w)
 
-	buff.RemoveBuff(w, target, list, 900)
+		for range 3 {
+			if !buff.AddBuff(w, e, e, 900) {
+				t.Fatal("AddBuff 900 失败")
+			}
+		}
+		w.Update(dt)
 
-	if len(list.Buffs) != 0 {
-		t.Fatalf("移除后实例数应为 0，实际 %d", len(list.Buffs))
-	}
+		if buffStacks(t, w, e, 900) != 3 {
+			t.Fatalf("900 期望层数 3")
+		}
+		c, ok := w.GetComponent(e, &component.StatModifiers{})
+		if !ok {
+			t.Fatal("缺少 StatModifiers")
+		}
+		sm, _ := c.(*component.StatModifiers)
+		// Params[0]=3，每层叠一层：delta = 3 * Stacks = 9
+		if sm.ArmorDelta != 9 {
+			t.Fatalf("护甲增量期望 9，实际 %d", sm.ArmorDelta)
+		}
+	})
+
+	t.Run("叠加·刷新持续时间901", func(t *testing.T) {
+		config.Load(dir)
+		r, err := room.CreateRoom(1, []*unit.Player{testPlayerForBuff()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := r.World()
+		system.AddCombatSystems(w)
+		e := findPlayerEntity(t, w)
+
+		if !buff.AddBuff(w, e, e, 901) || !buff.AddBuff(w, e, e, 901) {
+			t.Fatal("AddBuff 901 失败")
+		}
+		w.Update(dt)
+
+		if buffStacks(t, w, e, 901) != 1 {
+			t.Fatalf("901 refresh 期望层数仍为 1")
+		}
+		c, ok := w.GetComponent(e, &component.StatModifiers{})
+		if !ok {
+			t.Fatal("缺少 StatModifiers")
+		}
+		sm, _ := c.(*component.StatModifiers)
+		if sm.AttackDamageDelta != -10 {
+			t.Fatalf("虚弱期望攻击力增量 -10，实际 %d", sm.AttackDamageDelta)
+		}
+	})
+
+	t.Run("叠加·已有则忽略902", func(t *testing.T) {
+		config.Load(dir)
+		r, err := room.CreateRoom(1, []*unit.Player{testPlayerForBuff()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := r.World()
+		system.AddCombatSystems(w)
+		e := findPlayerEntity(t, w)
+
+		if !buff.AddBuff(w, e, e, 902) {
+			t.Fatal("首次 AddBuff 902 失败")
+		}
+		if buff.AddBuff(w, e, e, 902) {
+			t.Fatal("第二次施加应被忽略")
+		}
+		w.Update(dt)
+
+		if buffStacks(t, w, e, 902) != 1 {
+			t.Fatalf("902 ignore 期望层数 1")
+		}
+		c, ok := w.GetComponent(e, &component.StatModifiers{})
+		if !ok {
+			t.Fatal("缺少 StatModifiers")
+		}
+		sm, _ := c.(*component.StatModifiers)
+		if sm.ArmorDelta != 1 {
+			t.Fatalf("护甲增量期望 1，实际 %d", sm.ArmorDelta)
+		}
+	})
+
+	t.Run("叠加·替换实例903", func(t *testing.T) {
+		config.Load(dir)
+		r, err := room.CreateRoom(1, []*unit.Player{testPlayerForBuff()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := r.World()
+		system.AddCombatSystems(w)
+		e := findPlayerEntity(t, w)
+
+		if !buff.AddBuff(w, e, e, 903) || !buff.AddBuff(w, e, e, 903) {
+			t.Fatal("AddBuff 903 失败")
+		}
+		w.Update(dt)
+
+		if buffStacks(t, w, e, 903) != 1 {
+			t.Fatalf("903 replace 期望层数重置为 1")
+		}
+		c, ok := w.GetComponent(e, &component.StatModifiers{})
+		if !ok {
+			t.Fatal("缺少 StatModifiers")
+		}
+		sm, _ := c.(*component.StatModifiers)
+		if sm.ArmorDelta != 2 {
+			t.Fatalf("护甲增量期望 2，实际 %d", sm.ArmorDelta)
+		}
+	})
+
+	t.Run("效果·控制眩晕904", func(t *testing.T) {
+		config.Load(dir)
+		r, err := room.CreateRoom(1, []*unit.Player{testPlayerForBuff()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := r.World()
+		system.AddCombatSystems(w)
+		e := findPlayerEntity(t, w)
+
+		if !buff.AddBuff(w, e, e, 904) {
+			t.Fatal("AddBuff 904 失败")
+		}
+		w.Update(dt)
+
+		c, ok := w.GetComponent(e, &component.ControlState{})
+		if !ok {
+			t.Fatal("缺少 ControlState")
+		}
+		cs, _ := c.(*component.ControlState)
+		if cs.Flags&control.FlagStunned == 0 {
+			t.Fatal("期望眩晕位已置位")
+		}
+	})
 }

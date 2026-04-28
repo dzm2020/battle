@@ -27,32 +27,6 @@ type EffectType int
 const (
 	EffectDamage  EffectType = 1 // 造成伤害
 	EffectAddBuff EffectType = 2 // 添加Buff
-	EffectSummon  EffectType = 3 // 召唤单位
-	EffectBlink   EffectType = 4 // 闪现/瞬移
-	EffectResetCD EffectType = 5 // 重置冷却
-)
-
-// CompareOp 比较运算符
-type CompareOp int
-
-const (
-	OpEqual        CompareOp = 1 // ==
-	OpNotEqual     CompareOp = 2 // !=
-	OpGreater      CompareOp = 3 // >
-	OpLess         CompareOp = 4 // <
-	OpGreaterEqual CompareOp = 5 // >=
-	OpLessEqual    CompareOp = 6 // <=
-)
-
-// ConditionType 被动条件类型（用于被动条件配置表）
-type ConditionType int
-
-const (
-	CondOnSkillCast   ConditionType = 1 // 当释放某个技能时
-	CondOnTakeDamage  ConditionType = 2 // 当受到伤害时
-	CondOnDealDamage  ConditionType = 3 // 当造成伤害时
-	CondOnBuffApplied ConditionType = 4 // 当获得Buff时
-	CondOnHealthBelow ConditionType = 5 // 当生命值低于某比例时
 )
 
 // ======================= 配置结构体 =======================
@@ -80,12 +54,12 @@ type SkillEffectConfig struct {
 
 // ======================= 被动技能相关 =======================
 
-// PassiveConditionConfig 被动条件配置表
-// 描述被动技能的触发条件和触发后的效果（通常触发后执行一组效果ID）
-type PassiveConditionConfig struct {
-	ID               int           `json:"id"`                 // 条件配置ID
-	ConditionType    ConditionType `json:"condition_type"`     // 条件类型
-	IntParams        []int         `json:"int_params"`         // 条件参数（整数）
-	StringParams     []string      `json:"string_params"`      // 条件参数（字符串）
-	TriggerEffectIDs []int         `json:"trigger_effect_ids"` // 触发时执行的效果ID列表
-}
+//// PassiveConditionConfig 被动条件配置表
+//// 描述被动技能的触发条件和触发后的效果（通常触发后执行一组效果ID）
+//type PassiveConditionConfig struct {
+//	ID               int           `json:"id"`                 // 条件配置ID
+//	ConditionType    ConditionType `json:"condition_type"`     // 条件类型
+//	IntParams        []int         `json:"int_params"`         // 条件参数（整数）
+//	StringParams     []string      `json:"string_params"`      // 条件参数（字符串）
+//	TriggerEffectIDs []int         `json:"trigger_effect_ids"` // 触发时执行的效果ID列表
+//}

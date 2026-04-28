@@ -27,7 +27,8 @@ type Tables struct {
 	SkillConfigByID        map[int32]*SkillBaseConfig
 	SkillEffectConfigByID  map[int32]*SkillEffectConfig  // 技能效果（[EffectID] → 行）
 	TargetSelectConfigByID map[int32]*TargetSelectConfig // 选目标规则
-	UnitConfigByID         map[string]*UnitConfig        // 单位模板（[UnitConfig.ID] → 行）
+	UnitConfigByID         map[int32]*UnitConfig        // 单位模板（顶层键 → 行）
+	DungeonConfigByID      map[int32]*DungeonConfig      // 副本配置（顶层键 → 行）
 }
 
 func (t *Tables) load(path string) {
@@ -37,6 +38,7 @@ func (t *Tables) load(path string) {
 	t.loadSkillEffectConfig(path)
 	t.loadTargetSelectConfig(path)
 	t.loadUnitConfig(path)
+	t.loadDungeonConfig(path)
 }
 
 func (t *Tables) loadAttributeConfig(path string) {
@@ -91,9 +93,19 @@ func (t *Tables) loadTargetSelectConfig(path string) {
 
 func (t *Tables) loadUnitConfig(path string) {
 	if t.UnitConfigByID == nil {
-		t.UnitConfigByID = make(map[string]*UnitConfig)
+		t.UnitConfigByID = make(map[int32]*UnitConfig)
 	}
 	err := ReadJSONFromFile(path2.Join(path, "Unit.json"), &t.UnitConfigByID)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (t *Tables) loadDungeonConfig(path string) {
+	if t.DungeonConfigByID == nil {
+		t.DungeonConfigByID = make(map[int32]*DungeonConfig)
+	}
+	err := ReadJSONFromFile(path2.Join(path, "Dungeon.json"), &t.DungeonConfigByID)
 	if err != nil {
 		panic(err)
 	}
@@ -107,4 +119,19 @@ func GetTargetSelectConfigByID(id int32) *TargetSelectConfig {
 }
 func GetSkillEffectConfigByID(id int32) *SkillEffectConfig {
 	return Tab.SkillEffectConfigByID[id]
+}
+
+func GetUnitConfigByID(id int32) *UnitConfig {
+	return Tab.UnitConfigByID[id]
+}
+
+func GetAttributeConfigByID(id int32) *AttributeConfig {
+	return Tab.AttributeConfigByID[id]
+}
+
+func GetDungeonConfigByID(id int32) *DungeonConfig {
+	if Tab == nil || Tab.DungeonConfigByID == nil {
+		return nil
+	}
+	return Tab.DungeonConfigByID[id]
 }

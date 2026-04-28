@@ -13,4 +13,5 @@ var (
 	ErrDuplicatePlayer = errors.New("player already in room")
 	ErrRoomClosed      = errors.New("room is closed")
 	ErrNoPlayers       = errors.New("no players in room")
+	ErrNoDungeonConfig = errors.New("no dungeon config")
 )

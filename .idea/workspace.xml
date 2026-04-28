@@ -48,8 +48,8 @@
       <recent name="E:\github\battleDemo\internal\battle\system" />
     </key>
   </component>
-  <component name="RunManager" selected="Go 测试.battle/test 中的 TestBuff_RemoveBuff_Manual">
-    <configuration name="battle/test 中的 TestBuff_Fixture_AddBuff900" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+  <component name="RunManager" selected="Go 测试.battle/test 中的 TestSkill/效果·对选取目标施加_Buff">
+    <configuration name="battle/test 中的 TestSkill/校验·沉默无法施法" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="battle" />
       <working_directory value="$PROJECT_DIR$/test" />
       <root_directory value="$PROJECT_DIR$" />
@@ -58,10 +58,10 @@
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$" />
       <framework value="gotest" />
-      <pattern value="^\QTestBuff_Fixture_AddBuff900\E$" />
+      <pattern value="^\QTestSkill\E$/^\Q校验·沉默无法施法\E$" />
       <method v="2" />
     </configuration>
-    <configuration name="battle/test 中的 TestBuff_RemoveBuff_Manual" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="battle/test 中的 TestSkill/校验·未学会的技能请求被丢弃" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="battle" />
       <working_directory value="$PROJECT_DIR$/test" />
       <root_directory value="$PROJECT_DIR$" />
@@ -70,10 +70,10 @@
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$" />
       <framework value="gotest" />
-      <pattern value="^\QTestBuff_RemoveBuff_Manual\E$" />
+      <pattern value="^\QTestSkill\E$/^\Q校验·未学会的技能请求被丢弃\E$" />
       <method v="2" />
     </configuration>
-    <configuration name="battle/test 中的 TestBuff_StackAdd_SecondApply_IncrementsStacks" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="battle/test 中的 TestSkill/校验·法力不足" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="battle" />
       <working_directory value="$PROJECT_DIR$/test" />
       <root_directory value="$PROJECT_DIR$" />
@@ -82,10 +82,10 @@
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$" />
       <framework value="gotest" />
-      <pattern value="^\QTestBuff_StackAdd_SecondApply_IncrementsStacks\E$" />
+      <pattern value="^\QTestSkill\E$/^\Q校验·法力不足\E$" />
       <method v="2" />
     </configuration>
-    <configuration name="battle/test 中的 TestBuff_StackIgnore_SecondApplyFails" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="battle/test 中的 TestSkill/校验·法力消耗成功" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="battle" />
       <working_directory value="$PROJECT_DIR$/test" />
       <root_directory value="$PROJECT_DIR$" />
@@ -94,10 +94,10 @@
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$" />
       <framework value="gotest" />
-      <pattern value="^\QTestBuff_StackIgnore_SecondApplyFails\E$" />
+      <pattern value="^\QTestSkill\E$/^\Q校验·法力消耗成功\E$" />
       <method v="2" />
     </configuration>
-    <configuration name="battle/test 中的 TestBuff_Tick_AppliesArmorStatModifier" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="battle/test 中的 TestSkill/效果·对选取目标施加_Buff" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="battle" />
       <working_directory value="$PROJECT_DIR$/test" />
       <root_directory value="$PROJECT_DIR$" />
@@ -106,16 +106,16 @@
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$" />
       <framework value="gotest" />
-      <pattern value="^\QTestBuff_Tick_AppliesArmorStatModifier\E$" />
+      <pattern value="^\QTestSkill\E$/^\Q效果·对选取目标施加_Buff\E$" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Go 测试.battle/test 中的 TestBuff_RemoveBuff_Manual" />
-        <item itemvalue="Go 测试.battle/test 中的 TestBuff_Tick_AppliesArmorStatModifier" />
-        <item itemvalue="Go 测试.battle/test 中的 TestBuff_StackIgnore_SecondApplyFails" />
-        <item itemvalue="Go 测试.battle/test 中的 TestBuff_StackAdd_SecondApply_IncrementsStacks" />
-        <item itemvalue="Go 测试.battle/test 中的 TestBuff_Fixture_AddBuff900" />
+        <item itemvalue="Go 测试.battle/test 中的 TestSkill/效果·对选取目标施加_Buff" />
+        <item itemvalue="Go 测试.battle/test 中的 TestSkill/校验·法力消耗成功" />
+        <item itemvalue="Go 测试.battle/test 中的 TestSkill/校验·法力不足" />
+        <item itemvalue="Go 测试.battle/test 中的 TestSkill/校验·未学会的技能请求被丢弃" />
+        <item itemvalue="Go 测试.battle/test 中的 TestSkill/校验·沉默无法施法" />
       </list>
     </recent_temporary>
   </component>

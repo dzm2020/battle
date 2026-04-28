@@ -14,8 +14,6 @@ type SkillCastStateSystem struct {
 	q     *ecs.Query[*component.SkillCastState]
 }
 
-func NewSkillCastStateSystem() *SkillCastStateSystem { return &SkillCastStateSystem{} }
-
 func (s *SkillCastStateSystem) Initialize(w *ecs.World) {
 	s.world = w
 	s.q = ecs.NewQuery[*component.SkillCastState](w)

@@ -14,5 +14,89 @@
     "sort_type": 0,
     "sort_order": 0,
     "filters": []
+  },
+  "10": {
+    "id": 10,
+    "include_self": false,
+    "max_count": 10,
+    "sort_type": 0,
+    "sort_order": 0,
+    "filters": [
+      {
+        "type": "camp",
+        "params": { "allowed_camps": [2] }
+      }
+    ]
+  },
+  "11": {
+    "id": 11,
+    "include_self": false,
+    "max_count": 10,
+    "sort_type": 0,
+    "sort_order": 0,
+    "filters": [
+      {
+        "type": "camp",
+        "params": { "allowed_camps": [1] }
+      }
+    ]
+  },
+  "12": {
+    "id": 12,
+    "include_self": false,
+    "max_count": 10,
+    "sort_type": 0,
+    "sort_order": 0,
+    "filters": [
+      {
+        "type": "status_mask",
+        "params": { "status_mask": 1 }
+      }
+    ]
+  },
+  "13": {
+    "id": 13,
+    "include_self": false,
+    "max_count": 10,
+    "sort_type": 0,
+    "sort_order": 0,
+    "filters": [
+      {
+        "type": "property",
+        "params": { "property": "hp", "op": "<", "value": 50 }
+      }
+    ]
+  },
+  "14": {
+    "id": 14,
+    "include_self": false,
+    "max_count": 1,
+    "sort_type": 1,
+    "sort_order": 0,
+    "filters": []
+  },
+  "15": {
+    "id": 15,
+    "include_self": false,
+    "max_count": 1,
+    "sort_type": 1,
+    "sort_order": 1,
+    "filters": []
+  },
+  "16": {
+    "id": 16,
+    "include_self": false,
+    "max_count": 1,
+    "sort_type": 2,
+    "sort_order": 0,
+    "filters": []
+  },
+  "99": {
+    "id": 99,
+    "include_self": true,
+    "max_count": 0,
+    "sort_type": 0,
+    "sort_order": 0,
+    "filters": []
   }
 }
