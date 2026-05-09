@@ -8,8 +8,6 @@ import "battle/ecs"
 type BuffList struct {
 	// Buffs 按加入顺序或系统维护顺序排列；同 BuffId 可因叠层策略出现多条（Independent）或单条（Refresh/Merge）。
 	Buffs []*BuffInstance
-
-	IsDirty bool
 }
 
 func (*BuffList) Component() {}

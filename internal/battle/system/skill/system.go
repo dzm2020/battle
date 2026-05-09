@@ -4,12 +4,24 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/target_selector"
 )
+
+type System struct {
+	world *ecs.World
+	q     *ecs.Query[*component.SkillCastState]
+}
+
+func (s *System) Initialize(w *ecs.World) {
+	s.world = w
+	s.q = ecs.NewQuery[*component.SkillCastState](w)
+}
+
+func (s *System) Update(dt float64) {
+}
 
 // AddSkill 若配置表中存在 skillConfigID，则在 entity 上确保存在 [component.SkillSet]，
 // 并追加一条 [RuntimeSkill]（已存在相同 ConfigID 时不重复追加，返回 true）。
-func AddSkill(w *ecs.World, entity ecs.Entity, skillConfigID int32) bool {
+func (s *System) AddSkill(w *ecs.World, entity ecs.Entity, skillConfigID int32) bool {
 	if w == nil || entity == 0 || !w.EntityExists(entity) {
 		return false
 	}
@@ -29,7 +41,7 @@ func AddSkill(w *ecs.World, entity ecs.Entity, skillConfigID int32) bool {
 
 // RemoveSkill 从 entity 的 [SkillSet] 中删除 ConfigID 等于 skillConfigID 的条目（至少删一条匹配项）。
 // 若移除后无任何技能，则移除 [SkillSet] 组件。未挂载 SkillSet 或未找到匹配项时返回 false。
-func RemoveSkill(w *ecs.World, entity ecs.Entity, skillConfigID int32) bool {
+func (s *System) RemoveSkill(w *ecs.World, entity ecs.Entity, skillConfigID int32) bool {
 	if w == nil || entity == 0 || !w.EntityExists(entity) {
 		return false
 	}
@@ -56,30 +68,4 @@ func RemoveSkill(w *ecs.World, entity ecs.Entity, skillConfigID int32) bool {
 		w.RemoveComponent(entity, &component.SkillSet{})
 	}
 	return found
-}
-
-// ApplySkillEffects 按 [config.SkillBaseConfig.EffectIDs] 顺序执行技能效果（伤害、加 Buff 等）。
-// caster：施法者；skillID：技能配置 ID。
-func ApplySkillEffects(w *ecs.World, caster ecs.Entity, skillID int) {
-	if w == nil || caster == 0 || !w.EntityExists(caster) {
-		return
-	}
-
-	desc := config.GetSkillConfigByID(int32(skillID))
-
-	if desc == nil {
-		return
-	}
-	for _, eid := range desc.EffectIDs {
-		effectDesc := config.GetSkillEffectConfigByID(int32(eid))
-		if effectDesc == nil {
-			continue
-		}
-		//  选取目标
-		targets := target_selector.Select(w, caster, int32(effectDesc.TargetSelectID))
-		//  执行效果
-		for _, t := range targets {
-			applySkillEffect(w, caster, t, effectDesc)
-		}
-	}
 }

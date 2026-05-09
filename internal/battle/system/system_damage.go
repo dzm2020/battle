@@ -6,8 +6,8 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/define"
 	"battle/internal/battle/event"
+	"battle/internal/battle/utils"
 	"math"
 	"math/rand/v2"
 )
@@ -35,7 +35,7 @@ func (s *DamageSystem) Update(dt float64) {
 
 		if source != 0 && pd.Type != component.DamageTrue {
 			hitChance := combatHitChance(s.world, source, victim)
-			if int(rand.UintN(define.Thousand)) >= hitChance {
+			if int(rand.UintN(utils.Thousand)) >= hitChance {
 				s.world.EmitEvent(ecs.Event{
 					Kind: event.DamageMissed,
 					Payload: event.Payload{
@@ -77,8 +77,8 @@ func effectiveDefense(w *ecs.World, victim ecs.Entity) (phys int, mag int) {
 
 // 命中率计算
 func combatHitChance(w *ecs.World, attacker, victim ecs.Entity) int {
-	hit := define.DefaultHitPermille
-	dodge := define.DefaultDodgePermille
+	hit := utils.DefaultHitPermille
+	dodge := utils.DefaultDodgePermille
 	if a, ok := w.GetComponent(attacker, &component.Attributes{}); ok {
 		attr := a.(*component.Attributes)
 		if attr.Get(config.AttrHitPermille) > 0 {
@@ -110,23 +110,23 @@ func applyCritIfAny(w *ecs.World, attacker ecs.Entity, raw int) int {
 	attr := a.(*component.Attributes)
 	crit := attr.Get(config.AttrCritRate)
 	if crit <= 0 {
-		crit = define.DefaultCritRatePermille
+		crit = utils.DefaultCritRatePermille
 	}
 	if sm, ok := w.GetComponent(attacker, &component.StatModifiers{}); ok {
 		crit += sm.(*component.StatModifiers).CritRateDeltaPermille
 	}
-	if int(rand.UintN(define.Thousand)) >= crit {
+	if int(rand.UintN(utils.Thousand)) >= crit {
 		return raw
 	}
 	bonus := attr.Get(config.AttrCritDamage)
 	if bonus <= 0 {
-		bonus = define.DefaultCritDamageBonusPermille
+		bonus = utils.DefaultCritDamageBonusPermille
 	}
 	if sm, ok := w.GetComponent(attacker, &component.StatModifiers{}); ok {
 		bonus += sm.(*component.StatModifiers).CritDamageDeltaPermille
 	}
-	mult := define.Thousand + bonus
-	return int(math.Floor(float64(raw*mult) / define.Thousand))
+	mult := utils.Thousand + bonus
+	return int(math.Floor(float64(raw*mult) / utils.Thousand))
 }
 
 // MitigatedDamage 根据类型与护甲/魔抗计算最终伤害。
@@ -146,11 +146,11 @@ func MitigatedDamage(raw int, t component.DamageType, physicalArmor, magicResist
 	default:
 		def = 0
 	}
-	denom := define.Hundred + def
+	denom := utils.Hundred + def
 	if denom < 1 {
 		denom = 1
 	}
-	out := int(math.Floor(float64(raw*define.Hundred) / float64(denom)))
+	out := int(math.Floor(float64(raw*utils.Hundred) / float64(denom)))
 	if out < 0 {
 		return 0
 	}

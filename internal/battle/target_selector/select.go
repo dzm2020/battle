@@ -4,22 +4,22 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/target_selector/target_fliter"
+	"battle/internal/battle/target_selector/target_sort"
 )
 
 // Select 根据 [config.TargetSelectConfigByID] 选取实体列表。
-func Select(w *ecs.World, caster ecs.Entity, selectID int32) []ecs.Entity {
+func Select(w *ecs.World, caster ecs.Entity, selectDescID int32) []ecs.Entity {
 	if w == nil || caster == 0 || !w.EntityExists(caster) {
 		return nil
 	}
-
-	desc := config.GetTargetSelectConfigByID(selectID)
+	desc := config.GetTargetSelectConfigByID(selectDescID)
 	if desc == nil {
 		return nil
 	}
 	if desc.MaxCount == 0 {
 		return nil
 	}
-
 	q := ecs.NewQuery[*component.Health](w)
 	var candidates []ecs.Entity
 	seen := make(map[ecs.Entity]struct{})
@@ -28,8 +28,8 @@ func Select(w *ecs.World, caster ecs.Entity, selectID int32) []ecs.Entity {
 		if e == caster && !desc.IncludeSelf {
 			return
 		}
-		ctx := &Context{World: w, Caster: caster, Target: e}
-		if !evalRootFilters(ctx, desc.Filters) {
+		ctx := &target_fliter.Context{World: w, Caster: caster, Target: e}
+		if !target_fliter.Do(ctx, desc.Filters...) {
 			return
 		}
 		if _, ok := seen[e]; ok {
@@ -39,7 +39,7 @@ func Select(w *ecs.World, caster ecs.Entity, selectID int32) []ecs.Entity {
 		candidates = append(candidates, e)
 	})
 	//  排序目标（距离类排序以 caster 为参考点）
-	sortTargets(w, caster, candidates, desc.SortType, desc.SortOrder)
+	target_sort.Do(w, caster, candidates, desc.SortType, desc.SortOrder)
 	//  选取N个
 	if desc.MaxCount > 0 && len(candidates) > desc.MaxCount {
 		return candidates[:desc.MaxCount]

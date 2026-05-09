@@ -2,7 +2,7 @@ package unit
 
 import (
 	"battle/internal/battle/attributes"
-	"battle/internal/battle/system/skill"
+	"battle/internal/battle/system/skill/skill_effect"
 	"errors"
 	"fmt"
 
@@ -38,7 +38,7 @@ func SpawnUnitByID(w *ecs.World, unitID int32) (ecs.Entity, error) {
 	attributes.InitFromConfig(w, e, unitDesc.Stats)
 
 	for _, sid := range unitDesc.Ability {
-		if !skill.AddSkill(w, e, sid) {
+		if !skill_effect.AddSkill(w, e, sid) {
 			w.RemoveEntity(e)
 			return 0, fmt.Errorf("unit: 初始技能 %d 挂载失败（单位模板 %d）", sid, unitID)
 		}
@@ -73,7 +73,7 @@ func SpawnUnitByPlayer(w *ecs.World, player *Player) (ecs.Entity, error) {
 	attributes.InitFromStats(w, e, pu.Stats)
 
 	for _, sid := range pu.Ability {
-		if !skill.AddSkill(w, e, sid) {
+		if !skill_effect.AddSkill(w, e, sid) {
 			w.RemoveEntity(e)
 			return 0, fmt.Errorf("unit: 玩家单位 %d 技能 %d 挂载失败", unitKey, sid)
 		}

@@ -1,25 +1,25 @@
-package system
+package skill
 
 import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/system/skill"
+	"battle/internal/battle/system/skill/skill_effect"
 )
 
-// SkillCastStateSystem
-// @Description: 更新技能状态
-type SkillCastStateSystem struct {
+// CastStateSystem
+// @Description: CastStateSystem  释放技能
+type CastStateSystem struct {
 	world *ecs.World
 	q     *ecs.Query[*component.SkillCastState]
 }
 
-func (s *SkillCastStateSystem) Initialize(w *ecs.World) {
+func (s *CastStateSystem) Initialize(w *ecs.World) {
 	s.world = w
 	s.q = ecs.NewQuery[*component.SkillCastState](w)
 }
 
-func (s *SkillCastStateSystem) Update(dt float64) {
+func (s *CastStateSystem) Update(dt float64) {
 	if s.world == nil || s.q == nil {
 		return
 	}
@@ -43,9 +43,9 @@ func (s *SkillCastStateSystem) Update(dt float64) {
 			state.Phase = component.SkillStagePostCast
 			fallthrough
 		case component.SkillStagePostCast:
-			skill.ApplySkillEffects(s.world, e, state.SkillId)
+			skill_effect.Apply(s.world, e, state.SkillId)
 			//  切换到后摇阶段
-			cd := afterCastFrames(state.SkillId)
+			cd := config.SkillAfterCastFrames(state.SkillId)
 			state.Phase = component.SkillStageAfterCast
 			state.IsCasting = false
 			state.RemainingFrames = cd
@@ -60,12 +60,4 @@ func (s *SkillCastStateSystem) Update(dt float64) {
 			s.world.RemoveComponent(e, &component.SkillCastState{})
 		}
 	})
-}
-
-func afterCastFrames(skillID int) int {
-	cfg, ok := config.Tab.SkillConfigByID[int32(skillID)]
-	if !ok || cfg == nil || cfg.AfterCastFrames <= 0 {
-		return 0
-	}
-	return cfg.AfterCastFrames
 }

@@ -4,7 +4,7 @@ import (
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 	"battle/internal/battle/log"
-	"battle/internal/battle/system/buff/utils"
+	"battle/internal/battle/utils"
 )
 
 func stackPolicyRefresh(new *component.BuffInstance, desc *config.BuffConfig, bl *component.BuffList) bool {

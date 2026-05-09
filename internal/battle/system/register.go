@@ -3,6 +3,7 @@ package system
 import (
 	"battle/ecs"
 	"battle/internal/battle/system/buff"
+	"battle/internal/battle/system/skill"
 )
 
 // AddCombatSystems 注册完整战斗管线（单帧内执行顺序）：
@@ -11,9 +12,9 @@ import (
 // Buff 模板见 [config.Tab.BuffConfigConfigByID]，技能配置见 [config.Tab.SkillConfigByID]。
 func AddCombatSystems(w *ecs.World) {
 	w.AddSystem(&buff.System{})
-	w.AddSystem(&SkillCooldownSystem{})
-	w.AddSystem(&SkillCastValidationSystem{})
-	w.AddSystem(&SkillCastStateSystem{})
+	w.AddSystem(&skill.CooldownSystem{})
+	w.AddSystem(&skill.CastValidationSystem{})
+	w.AddSystem(&skill.CastStateSystem{})
 	w.AddSystem(&DamageSystem{})
 	w.AddSystem(&HealSystem{})
 	w.AddSystem(&HealthSystem{})

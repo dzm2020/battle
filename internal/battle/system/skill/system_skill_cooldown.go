@@ -1,23 +1,23 @@
-package system
+package skill
 
 import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 )
 
-// SkillCooldownSystem
+// CooldownSystem
 // @Description: 更新技能CD
-type SkillCooldownSystem struct {
+type CooldownSystem struct {
 	world *ecs.World
 	q     *ecs.Query[*component.SkillSet]
 }
 
-func (s *SkillCooldownSystem) Initialize(w *ecs.World) {
+func (s *CooldownSystem) Initialize(w *ecs.World) {
 	s.world = w
 	s.q = ecs.NewQuery[*component.SkillSet](w)
 }
 
-func (s *SkillCooldownSystem) Update(dt float64) {
+func (s *CooldownSystem) Update(dt float64) {
 	if s.world == nil || s.q == nil {
 		return
 	}

@@ -1,24 +1,24 @@
-package system
+package skill
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/action"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/utils"
 )
 
-// SkillCastValidationSystem 统一校验冷却、消耗、状态等
-type SkillCastValidationSystem struct {
+// CastValidationSystem 统一校验冷却、消耗、状态等
+type CastValidationSystem struct {
 	world *ecs.World
 	q     *ecs.Query3[*component.SkillSet, *component.Attributes, *component.SkillCastRequest]
 }
 
-func (s *SkillCastValidationSystem) Initialize(w *ecs.World) {
+func (s *CastValidationSystem) Initialize(w *ecs.World) {
 	s.world = w
 	s.q = ecs.NewQuery3[*component.SkillSet, *component.Attributes, *component.SkillCastRequest](w)
 }
 
-func (s *SkillCastValidationSystem) Update(dt float64) {
+func (s *CastValidationSystem) Update(dt float64) {
 	if s.world == nil || s.q == nil {
 		return
 	}
@@ -47,7 +47,7 @@ func (s *SkillCastValidationSystem) Update(dt float64) {
 		}
 
 		// 是否处于控制状态（眩晕、沉默）阻止施法
-		if !action.CanAct(s.world, e) {
+		if !utils.CanAct(s.world, e) {
 			s.world.RemoveComponent(e, &component.SkillCastRequest{})
 			return
 		}
@@ -75,7 +75,7 @@ func (s *SkillCastValidationSystem) Update(dt float64) {
 		s.world.RemoveComponent(e, &component.SkillCastRequest{})
 		//  记录冷却
 		rs.CurrentCooldown = skillCfg.CooldownFrames
-
+		//  释放技能
 		castState := &component.SkillCastState{
 			IsCasting:       true,
 			SkillId:         rs.ConfigID,

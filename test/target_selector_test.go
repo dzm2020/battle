@@ -1,6 +1,7 @@
 package test
 
 import (
+	"battle/internal/battle/utils"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -8,9 +9,8 @@ import (
 
 	"battle/ecs"
 	"battle/internal/battle/component"
-	"battle/internal/battle/event"
 	"battle/internal/battle/config"
-	"battle/internal/battle/control"
+	"battle/internal/battle/event"
 	"battle/internal/battle/target_selector"
 )
 
@@ -139,7 +139,7 @@ func TestTargetSelect(t *testing.T) {
 		caster := spawnUnit(w, 0, 100, 100, 100, 0, 0)
 		stunned := spawnUnit(w, 1, 40, 40, 40, 0, 0)
 		_ = spawnUnit(w, 1, 40, 40, 40, 1, 0)
-		w.AddComponent(stunned, &component.ControlState{Flags: control.FlagStunned})
+		w.AddComponent(stunned, &component.ControlState{Flags: utils.FlagStunned})
 		got := target_selector.Select(w, caster, 12)
 		sameEntitySet(t, got, []ecs.Entity{stunned})
 	})

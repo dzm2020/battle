@@ -63,3 +63,11 @@ type SkillEffectConfig struct {
 //	StringParams     []string      `json:"string_params"`      // 条件参数（字符串）
 //	TriggerEffectIDs []int         `json:"trigger_effect_ids"` // 触发时执行的效果ID列表
 //}
+
+func SkillAfterCastFrames(skillID int) int {
+	cfg, ok := Tab.SkillConfigByID[int32(skillID)]
+	if !ok || cfg == nil || cfg.AfterCastFrames <= 0 {
+		return 0
+	}
+	return cfg.AfterCastFrames
+}

@@ -43,9 +43,11 @@
 }</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="E:\github\battleDemo\internal\battle\target_selector\target_fliter" />
+      <recent name="E:\github\battleDemo\internal\battle\utils" />
+      <recent name="E:\github\battleDemo\internal\battle\system\skill" />
+      <recent name="E:\github\battleDemo\internal\battle\system\skill\skill_effect" />
       <recent name="E:\github\battleDemo\internal\battle\system" />
-      <recent name="E:\github\battleDemo\internal\battle\component" />
-      <recent name="E:\github\battleDemo\internal\battle" />
     </key>
   </component>
   <component name="RunManager" selected="Go 测试.battle/test 中的 TestSkill/效果·对选取目标施加_Buff">

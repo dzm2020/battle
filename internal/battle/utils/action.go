@@ -1,6 +1,6 @@
 // Package action 提供与 Buff 派生控制状态相关的行动判定（与 [component.ControlState]、
 // [system.BuffSystem] 配合；沉默等位标志可在此包扩展专用 API）。
-package action
+package utils
 
 import (
 	"battle/ecs"
