@@ -4,6 +4,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/event"
 )
 
 // HealSystem 消费 [PendingHeal]，直接增加 [Health].Current 并派发 [EventHealApplied]；在 [DamageSystem] 之后、
@@ -39,10 +40,12 @@ func (s *HealSystem) Update(dt float64) {
 		}
 		src := ph.Source
 		s.world.EmitEvent(ecs.Event{
-			Kind:       ecs.EventHealApplied,
-			Entity:     e,
-			Attacker:   src,
-			IntPayload: ph.Amount,
+			Kind: event.HealApplied,
+			Payload: event.Payload{
+				Entity:     e,
+				Attacker:   src,
+				IntPayload: ph.Amount,
+			},
 		})
 		s.world.RemoveComponent(e, &component.PendingHeal{})
 	})

@@ -78,7 +78,7 @@ func (s *HealthSystem) Update(dt float64) {
 func TestEcs(t *testing.T) {
 
 	// 创建世界
-	world := NewWorld(10)
+	world := NewWorldWithStdPayload(10)
 
 	// 注册组件类型（可选，首次添加时会自动注册）
 	world.Registry().Register(&Position{})

@@ -2,7 +2,7 @@ package skill
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/buff"
+
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 )
@@ -59,6 +59,7 @@ func handleSkillEffectAddBuff(w *ecs.World, caster, target ecs.Entity, eff *conf
 	if len(eff.IntParams) < 1 || eff.IntParams[0] <= 0 {
 		return
 	}
-	buffID := uint32(eff.IntParams[0])
-	_ = buff.AddBuff(w, caster, target, buffID)
+	//buffID := uint32(eff.IntParams[0])
+	//  todo
+	//_ = buff.AddBuff(w, caster, target, buffID)
 }

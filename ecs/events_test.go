@@ -3,11 +3,12 @@ package ecs
 import "testing"
 
 func TestEvents_EntityAndComponent(t *testing.T) {
-	w := NewWorld(4)
+	w := NewWorldWithStdPayload(4)
 
 	var created, destroyed, added, removed int
 	cancelC := w.Subscribe(EventEntityCreated, func(e Event) {
-		if e.Kind != EventEntityCreated || e.Entity == 0 {
+		p, ok := e.Payload.(StdPayload)
+		if e.Kind != EventEntityCreated || !ok || p.Entity == 0 {
 			t.Errorf("bad created: %+v", e)
 		}
 		created++
@@ -47,7 +48,7 @@ func TestEvents_EntityAndComponent(t *testing.T) {
 }
 
 func TestEvents_SubscribeCancel(t *testing.T) {
-	w := NewWorld(2)
+	w := NewWorldWithStdPayload(2)
 	var n int
 	cancel := w.Subscribe(EventEntityCreated, func(e Event) { n++ })
 	e := w.CreateEntity()

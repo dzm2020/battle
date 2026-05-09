@@ -7,6 +7,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/clock"
 	"battle/internal/battle/component"
+	"battle/internal/battle/event"
 	"battle/internal/battle/system"
 	"battle/internal/battle/tick"
 )
@@ -33,7 +34,7 @@ func (r *Room) phaseIs(p Phase) bool {
 }
 
 func newRoom(id uint64) *Room {
-	w := ecs.NewWorld(10)
+	w := event.NewCombatWorld(10)
 	component.RegisterCombatTypesWorld(w)
 	return &Room{
 		id:    id,

@@ -2,12 +2,12 @@ package unit
 
 import (
 	"battle/internal/battle/attributes"
-	"battle/internal/battle/skill"
+	"battle/internal/battle/system/skill"
 	"errors"
 	"fmt"
 
 	"battle/ecs"
-	"battle/internal/battle/buff"
+
 	"battle/internal/battle/config"
 )
 
@@ -43,13 +43,13 @@ func SpawnUnitByID(w *ecs.World, unitID int32) (ecs.Entity, error) {
 			return 0, fmt.Errorf("unit: 初始技能 %d 挂载失败（单位模板 %d）", sid, unitID)
 		}
 	}
-
-	for _, bid := range unitDesc.BuffDefIDs {
-		if !buff.AddBuff(w, e, e, bid) {
-			w.RemoveEntity(e)
-			return 0, fmt.Errorf("unit: 初始 Buff %d 挂载失败（单位模板 %d）", bid, unitID)
-		}
-	}
+	// todo
+	//for _, bid := range unitDesc.BuffDefIDs {
+	//	if !buff.AddBuff(w, e, e, bid) {
+	//		w.RemoveEntity(e)
+	//		return 0, fmt.Errorf("unit: 初始 Buff %d 挂载失败（单位模板 %d）", bid, unitID)
+	//	}
+	//}
 
 	return e, nil
 }
@@ -78,12 +78,13 @@ func SpawnUnitByPlayer(w *ecs.World, player *Player) (ecs.Entity, error) {
 			return 0, fmt.Errorf("unit: 玩家单位 %d 技能 %d 挂载失败", unitKey, sid)
 		}
 	}
-	for _, bid := range pu.BuffDefIDs {
-		if !buff.AddBuff(w, e, e, bid) {
-			w.RemoveEntity(e)
-			return 0, fmt.Errorf("unit: 玩家单位 %d Buff %d 挂载失败", unitKey, bid)
-		}
-	}
+	//  todo
+	//for _, bid := range pu.BuffDefIDs {
+	//	if !buff.AddBuff(w, e, e, bid) {
+	//		w.RemoveEntity(e)
+	//		return 0, fmt.Errorf("unit: 玩家单位 %d Buff %d 挂载失败", unitKey, bid)
+	//	}
+	//}
 
 	return e, nil
 }

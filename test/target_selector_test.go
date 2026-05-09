@@ -8,6 +8,7 @@ import (
 
 	"battle/ecs"
 	"battle/internal/battle/component"
+	"battle/internal/battle/event"
 	"battle/internal/battle/config"
 	"battle/internal/battle/control"
 	"battle/internal/battle/target_selector"
@@ -24,7 +25,7 @@ func battleConfigDirForTarget(t *testing.T) string {
 
 func newTargetTestWorld(t *testing.T) *ecs.World {
 	t.Helper()
-	w := ecs.NewWorld(16)
+	w := event.NewCombatWorld(16)
 	component.RegisterCombatTypesWorld(w)
 	return w
 }

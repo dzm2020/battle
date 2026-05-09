@@ -25,7 +25,7 @@ type ComponentRegistry struct {
 // NewComponentRegistry 创建组件注册表
 func NewComponentRegistry() *ComponentRegistry {
 	return &ComponentRegistry{
-		types:    make([]componentType, 0, 32),
+		types:    make([]componentType, 0, 255),
 		typeToID: make(map[reflect.Type]uint8),
 		nextID:   0,
 	}

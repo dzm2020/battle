@@ -60,7 +60,7 @@
 
 ## 5. 多阵营（>2）
 
-[`Team.Side`](/internal/battle/component/team.go) 为 **`uint8`**，技能 [`CampEnemy`](/internal/battle/skill/skill_target_spec.go) 语义为 **「与施法者 Side 不同」**，**不限制只能两个阵营**。三方、四方对战在同一 World 内只需分配不同 `Side`。
+[`Team.Side`](/internal/battle/component/team.go) 为 **`uint8`**，技能 [`CampEnemy`](/internal/battle/system/skill/skill_target_spec.go) 语义为 **「与施法者 Side 不同」**，**不限制只能两个阵营**。三方、四方对战在同一 World 内只需分配不同 `Side`。
 
 ---
 

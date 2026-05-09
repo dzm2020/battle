@@ -4,7 +4,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/skill"
+	"battle/internal/battle/system/skill"
 )
 
 // SkillCastStateSystem

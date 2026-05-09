@@ -3,12 +3,13 @@ package system
 import (
 	"battle/ecs"
 	"battle/internal/battle/component"
+	"battle/internal/battle/event"
 )
 
-// BattleEndPayloadDraw 全员阵亡 / 同归于尽时 [ecs.EventBattleEnd].IntPayload 取值。
+// BattleEndPayloadDraw 全员阵亡 / 同归于尽时 battle end 事件的 [event.Payload].IntPayload 取值。
 const BattleEndPayloadDraw = -1
 
-// BattleEndSystem 根据仍存活的阵营数判定战斗是否结束，并派发 [ecs.EventBattleEnd]。
+// BattleEndSystem 根据仍存活的阵营数判定战斗是否结束，并派发 [event.BattleEnd]。
 // 仅统计同时挂载 [component.Team] 与 [component.Health] 且 Current > 0 的实体（参战单位）。
 // IntPayload：获胜方 [component.Team].Side（0–255）；平局为 [BattleEndPayloadDraw]。
 //
@@ -60,8 +61,8 @@ func (s *BattleEndSystem) Update(dt float64) {
 func (s *BattleEndSystem) finish(winnerPayload int) {
 	s.done = true
 	s.world.EmitEvent(ecs.Event{
-		Kind:       ecs.EventBattleEnd,
-		IntPayload: winnerPayload,
+		Kind:    event.BattleEnd,
+		Payload: event.Payload{IntPayload: winnerPayload},
 	})
 }
 

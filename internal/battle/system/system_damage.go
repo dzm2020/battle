@@ -7,6 +7,7 @@ import (
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 	"battle/internal/battle/define"
+	"battle/internal/battle/event"
 	"math"
 	"math/rand/v2"
 )
@@ -36,9 +37,11 @@ func (s *DamageSystem) Update(dt float64) {
 			hitChance := combatHitChance(s.world, source, victim)
 			if int(rand.UintN(define.Thousand)) >= hitChance {
 				s.world.EmitEvent(ecs.Event{
-					Kind:     ecs.EventDamageMissed,
-					Entity:   victim,
-					Attacker: source,
+					Kind: event.DamageMissed,
+					Payload: event.Payload{
+						Entity:   victim,
+						Attacker: source,
+					},
 				})
 				s.world.RemoveComponent(victim, &component.PendingDamage{})
 				return

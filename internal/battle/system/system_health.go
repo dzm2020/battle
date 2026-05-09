@@ -4,9 +4,10 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/event"
 )
 
-// HealthSystem 应用 [ResolvedDamage]，派发 [ecs.EventDamageApplied]，再移除 ResolvedDamage。
+// HealthSystem 应用 [ResolvedDamage]，派发 [event.DamageApplied]，再移除 ResolvedDamage。
 type HealthSystem struct {
 	world *ecs.World
 	q     *ecs.Query2[*component.ResolvedDamage, *component.Attributes]
@@ -49,9 +50,11 @@ func (s *HealthSystem) Update(dt float64) {
 		}
 
 		s.world.EmitEvent(ecs.Event{
-			Kind:       ecs.EventDamageApplied,
-			Entity:     e,
-			IntPayload: rd.Amount,
+			Kind: event.DamageApplied,
+			Payload: event.Payload{
+				Entity:     e,
+				IntPayload: rd.Amount,
+			},
 		})
 		s.world.RemoveComponent(e, &component.ResolvedDamage{})
 	})

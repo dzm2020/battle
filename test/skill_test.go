@@ -1,15 +1,16 @@
 package test
 
 import (
+	"battle/internal/battle/system/skill"
 	"path/filepath"
 	"runtime"
 	"testing"
 
 	"battle/ecs"
 	"battle/internal/battle/component"
+	"battle/internal/battle/event"
 	"battle/internal/battle/config"
 	"battle/internal/battle/control"
-	"battle/internal/battle/skill"
 	"battle/internal/battle/system"
 )
 
@@ -24,7 +25,7 @@ func battleConfigDirForSkill(t *testing.T) string {
 
 func newSkillCombatWorld(t *testing.T) *ecs.World {
 	t.Helper()
-	w := ecs.NewWorld(8)
+	w := event.NewCombatWorld(8)
 	component.RegisterCombatTypesWorld(w)
 	return w
 }

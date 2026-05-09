@@ -10,7 +10,7 @@ type World struct {
 	events   *eventBus
 }
 
-// NewWorld 创建世界
+// NewWorld 创建世界；lifecycle 用于在实体/组件生命周期填充 [Event.Payload]（可为零值，此时 Payload 恒为 nil）。
 func NewWorld(initEntityNum int32) *World {
 	return &World{
 		registry: NewComponentRegistry(),
@@ -18,6 +18,30 @@ func NewWorld(initEntityNum int32) *World {
 		systems:  make([]System, 0, 16),
 		events:   newEventBus(),
 	}
+}
+
+func (w *World) emitLifecycleCreated(e Entity) {
+	w.events.emit(Event{Kind: EventKindEntityCreated, Payload: &EventEntityCreated{E: e}})
+}
+
+func (w *World) emitLifecycleDestroyed(e Entity) {
+	w.events.emit(Event{Kind: EventKindEntityDestroyed, Payload: &EventEntityDestroyed{E: e}})
+}
+
+func (w *World) emitLifecycleComponentAdded(e Entity, compID uint8, comp Component) {
+	w.events.emit(Event{Kind: EventKindComponentAdded, Payload: &EventEntityComponentAdded{
+		E:      e,
+		CompID: compID,
+		Comp:   comp,
+	}})
+}
+
+func (w *World) emitLifecycleComponentRemoved(e Entity, compID uint8, comp Component) {
+	w.events.emit(Event{Kind: EventKindComponentRemoved, Payload: &EventEntityComponentAdded{
+		E:      e,
+		CompID: compID,
+		Comp:   comp,
+	}})
 }
 
 // Registry 获取组件注册表
@@ -29,13 +53,13 @@ func (w *World) Registry() *ComponentRegistry {
 func (w *World) CreateEntity() Entity {
 	e := NewEntity()
 	w.entities[e] = NewEntityComponents()
-	w.events.emit(Event{Kind: EventEntityCreated, Entity: e})
+	w.emitLifecycleCreated(e)
 	return e
 }
 
 // RemoveEntity 移除实体
 func (w *World) RemoveEntity(e Entity) {
-	w.events.emit(Event{Kind: EventEntityDestroyed, Entity: e})
+	w.emitLifecycleDestroyed(e)
 	delete(w.entities, e)
 }
 
@@ -73,12 +97,7 @@ func (w *World) AddComponent(e Entity, comp Component) {
 			return
 		}
 		ec.Add(compID, comp)
-		w.events.emit(Event{
-			Kind:        EventComponentAdded,
-			Entity:      e,
-			ComponentID: compID,
-			Component:   comp,
-		})
+		w.emitLifecycleComponentAdded(e, compID, comp)
 	}
 }
 
@@ -88,12 +107,7 @@ func (w *World) RemoveComponent(e Entity, comp Component) {
 		if ec, exists := w.entities[e]; exists {
 			if existing, ok := ec.Get(compID); ok {
 				ec.Remove(compID)
-				w.events.emit(Event{
-					Kind:        EventComponentRemoved,
-					Entity:      e,
-					ComponentID: compID,
-					Component:   existing,
-				})
+				w.emitLifecycleComponentRemoved(e, compID, existing)
 			}
 		}
 	}
@@ -122,7 +136,7 @@ func (w *World) Update(dt float64) {
 	}
 }
 
-// EmitEvent 派发战斗等业务自定义事件（与实体生命周期事件共用同一套订阅）。
+// EmitEvent 派发业务自定义事件（与实体生命周期事件共用同一套订阅）。
 func (w *World) EmitEvent(e Event) {
 	w.events.emit(e)
 }
