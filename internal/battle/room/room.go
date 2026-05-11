@@ -7,7 +7,6 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/clock"
 	"battle/internal/battle/component"
-	"battle/internal/battle/event"
 	"battle/internal/battle/system"
 	"battle/internal/battle/tick"
 )
@@ -34,8 +33,8 @@ func (r *Room) phaseIs(p Phase) bool {
 }
 
 func newRoom(id uint64) *Room {
-	w := event.NewCombatWorld(10)
-	component.RegisterCombatTypesWorld(w)
+	w := ecs.NewWorld(100)
+	component.Register(w)
 	return &Room{
 		id:    id,
 		tps:   60,
@@ -81,7 +80,7 @@ func (r *Room) StartBattle(ctx context.Context) error {
 	loop := r.loop
 	w := r.world
 
-	system.AddCombatSystems(w)
+	system.AddSystems(w)
 
 	dt := 1.0 / float64(r.clk.TPS())
 	loop.Add(tick.FuncSubscriber(func(_ *clock.Clock) {

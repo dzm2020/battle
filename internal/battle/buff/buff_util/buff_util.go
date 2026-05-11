@@ -1,6 +1,4 @@
-// Package utils
-// @Description: 存放无副作用的只读函数
-package utils
+package buff_util
 
 import (
 	"battle/ecs"

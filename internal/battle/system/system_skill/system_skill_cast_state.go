@@ -4,7 +4,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/system/skill/skill_effect"
+	"battle/internal/battle/skill/skill_effect"
 )
 
 // CastStateSystem

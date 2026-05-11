@@ -1,6 +1,6 @@
 package component
 
-// StatModifiers 本帧由 [system.BuffSystem] 从 [BuffList] 全量重算，仅作“相对基础 [Attributes.Values] 的
+// StatModifiers 本帧由 [system.BuffSystem] 从 [BuffList] 全量重算，仅作“相对基础 [Attributes.Values][key].Current 的
 // 临时修正量”，不修改 [Attributes] 持久值。 [system.DamageSystem] 在计算有效物甲/魔抗时
 // 会加上 ArmorDelta、MRDelta；攻击强度增量对应键 attack_damage。
 type StatModifiers struct {

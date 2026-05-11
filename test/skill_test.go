@@ -1,7 +1,7 @@
 package test
 
 import (
-	"battle/internal/battle/system/skill/skill_effect"
+	"battle/internal/battle/system/system_skill/skill_effect"
 	"battle/internal/battle/utils"
 	"path/filepath"
 	"runtime"
@@ -36,8 +36,8 @@ func spawnCombatUnit(w *ecs.World, side uint8, hp, mana int) ecs.Entity {
 	w.AddComponent(e, &component.Team{Side: side})
 	w.AddComponent(e, &component.Health{Current: hp, Max: hp})
 	a := ecs.EnsureGetComponent[*component.Attributes](w, e)
-	a.Set(config.AttrHp, hp)
-	a.Set(config.AttrMana, mana)
+	a.SetRange(config.AttrHp, hp, hp)
+	a.SetRange(config.AttrMana, mana, mana)
 	return e
 }
 

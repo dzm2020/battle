@@ -11,4 +11,7 @@ const (
 	KindBattleEnd
 	KindAddBuffRequest
 	KindRemoveBuffRequest
+
+	KindAddSkillRequest
+	KindRemoveSkillRequest
 )

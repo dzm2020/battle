@@ -1,14 +1,14 @@
 package overlay
 
 import (
+	"battle/internal/battle/buff/buff_util"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 	"battle/internal/battle/log"
-	"battle/internal/battle/utils"
 )
 
 func stackPolicyIgnore(new *component.BuffInstance, desc *config.BuffConfig, bl *component.BuffList) bool {
-	if utils.FindDefIndex(bl.Buffs, desc.ID) >= 0 {
+	if buff_util.FindDefIndex(bl.Buffs, desc.ID) >= 0 {
 		log.Debug("[buff] 叠层·忽略策略：已存在相同模板 模板编号=%d，忽略本次施加", desc.ID)
 		return false
 	}

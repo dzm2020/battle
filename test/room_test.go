@@ -11,8 +11,8 @@ import (
 	"battle/internal/battle/attributes"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/entity_factory"
 	"battle/internal/battle/room"
-	"battle/internal/battle/unit"
 )
 
 func battleConfigDirForRoom(t *testing.T) string {
@@ -28,9 +28,9 @@ func TestRoom(t *testing.T) {
 	dir := battleConfigDirForRoom(t)
 	config.Load(dir)
 
-	player := &unit.Player{
+	player := &entity_factory.Player{
 		ID: 1,
-		Units: map[uint32]*unit.PlayerUnit{
+		Units: map[uint32]*entity_factory.PlayerUnit{
 			1: {
 				ID: 1,
 				Stats: []attributes.Attribute{
@@ -41,7 +41,7 @@ func TestRoom(t *testing.T) {
 		},
 	}
 
-	r, err := room.CreateRoom(1, []*unit.Player{player})
+	r, err := room.CreateRoom(1, []*entity_factory.Player{player})
 	if err != nil {
 		t.Fatal(err)
 	}
