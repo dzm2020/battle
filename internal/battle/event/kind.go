@@ -9,9 +9,11 @@ const (
 	KindHealApplied
 	KindDeath
 	KindBattleEnd
-	KindAddBuffRequest
-	KindRemoveBuffRequest
-
-	KindAddSkillRequest
-	KindRemoveSkillRequest
 )
+
+// Payload 业务事件负载（订阅方按需读取字段）。
+type Payload struct {
+	IntPayload int
+	Entity     ecs.Entity
+	Attacker   ecs.Entity
+}

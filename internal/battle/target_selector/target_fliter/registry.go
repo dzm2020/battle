@@ -5,6 +5,8 @@ import (
 
 	"battle/ecs"
 	"battle/internal/battle/config"
+
+	"github.com/duke-git/lancet/v2/maputil"
 )
 
 type (
@@ -17,35 +19,22 @@ type (
 	handler func(ctx *Context, f config.Filter) bool
 )
 
-var (
-	handlers = make(map[string]handler)
-)
-
-func registry(typ string, fn handler) {
-	if typ == "" || fn == nil {
-		return
-	}
-	handlers[typeKey(config.FilterType(typ))] = fn
-}
+var handlers = maputil.NewConcurrentMap[string, handler](8)
 
 func typeKey(t config.FilterType) string {
 	return strings.ToLower(strings.TrimSpace(string(t)))
 }
 
 func init() {
-	registry(string(config.FilterCamp), campFilter)
-	registry(string(config.FilterStatusMask), statusFilter)
-	registry(string(config.FilterProperty), attributeFilter)
+	handlers.Set(typeKey(config.FilterCamp), campFilter)
+	handlers.Set(typeKey(config.FilterStatusMask), statusFilter)
+	handlers.Set(typeKey(config.FilterProperty), attributeFilter)
 }
 
-// Do true:满足条件  false：不满足条件
-func Do(ctx *Context, filters ...config.Filter) bool {
-	if len(filters) == 0 {
-		return true
-	}
+func Apply(ctx *Context, filters ...config.Filter) bool {
 	for _, f := range filters {
-		fn := handlers[typeKey(f.Type)]
-		if fn == nil {
+		fn, ok := handlers.Get(typeKey(f.Type))
+		if !ok || fn == nil {
 			return false
 		}
 		if !fn(ctx, f) {

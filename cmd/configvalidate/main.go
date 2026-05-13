@@ -13,17 +13,6 @@ func main() {
 	if len(os.Args) >= 2 {
 		dir = os.Args[1]
 	}
-	b, err := config.LoadCombatBundleFromDir(dir)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	errs := config.ValidateCombatBundle(b)
-	if len(errs) > 0 {
-		for _, e := range errs {
-			fmt.Fprintln(os.Stderr, e)
-		}
-		os.Exit(1)
-	}
+	config.Load(dir)
 	fmt.Println("ok")
 }

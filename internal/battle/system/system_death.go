@@ -4,7 +4,6 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/event"
 )
 
 // DeathSystem 对生命已耗尽的单位派发 [event.Death] 并移除实体。
@@ -22,19 +21,9 @@ func (s *DeathSystem) Initialize(w *ecs.World) {
 func (s *DeathSystem) Update(dt float64) {
 	s.q.ForEach(func(e ecs.Entity, h *component.Attributes) {
 		hp := h.Get(config.AttrHp)
-		if hc, ok := s.world.GetComponent(e, &component.Health{}); ok {
-			cur := hc.(*component.Health).Current
-			if hp <= 0 && cur > 0 {
-				hp = cur
-			}
-		}
 		if hp > 0 {
 			return
 		}
-		s.world.EmitEvent(ecs.Event{
-			Kind:    event.Death,
-			Payload: event.Payload{Entity: e},
-		})
 		s.world.RemoveEntity(e)
 	})
 }

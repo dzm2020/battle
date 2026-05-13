@@ -9,12 +9,12 @@ import (
 	"battle/internal/battle/log"
 )
 
-type System struct {
+type BuffSystem struct {
 	world *ecs.World
 	q     *ecs.Query[*component.BuffList]
 }
 
-func (s *System) Initialize(w *ecs.World) {
+func (s *BuffSystem) Initialize(w *ecs.World) {
 	s.world = w
 	s.q = ecs.NewQuery[*component.BuffList](w)
 	log.Info("[buff] Buff 系统已初始化")
@@ -22,11 +22,11 @@ func (s *System) Initialize(w *ecs.World) {
 
 // Update 遍历含 [component.BuffList] 的实体：先清零并重算 StatModifiers/ControlState，再逐实例
 // 聚合属性，最后递减 FramesLeft 并剔除到期实例。
-func (s *System) Update(dt float64) {
+func (s *BuffSystem) Update(dt float64) {
 	//  遍历所有对象
 	s.q.ForEach(func(e ecs.Entity, bl *component.BuffList) {
-		//  清空buff产生的组件
-		s.stripBuffAux(e)
+		//  清空buff产生的临时组件
+		s.clearPreFrameEffect(e)
 		//  倒序遍历：到期 RemoveBuff 会缩切片，正向 for-range 会跳过元素。
 		for i := len(bl.Buffs) - 1; i >= 0; i-- {
 			bi := bl.Buffs[i]
@@ -42,7 +42,9 @@ func (s *System) Update(dt float64) {
 			bi.CoolDownFrame--
 			if bi.CoolDownFrame <= 0 {
 
-				buff_effect.Apply(s.world, e, bi)
+				if err := buff_effect.Apply(s.world, e, bi); err != nil {
+					log.Error("buff effect apply error:%s", err)
+				}
 				//  重置冷却
 				periodicFrame := desc.CoolingFrame
 				bi.CoolDownFrame = periodicFrame - 1
@@ -63,13 +65,11 @@ func (s *System) Update(dt float64) {
 	})
 }
 
-func (s *System) stripBuffAux(e ecs.Entity) {
+func (s *BuffSystem) clearPreFrameEffect(e ecs.Entity) {
 	w := s.world
 	if w == nil || e == 0 {
 		return
 	}
-	w.RemoveComponent(e, &component.StatModifiers{})
-	w.RemoveComponent(e, &component.ControlState{})
-	w.RemoveComponent(e, &component.PendingDamageBuff{})
-	w.RemoveComponent(e, &component.PendingHealBuff{})
+	w.RemoveComponent(e, &component.BuffStatModifiers{})
+	w.RemoveComponent(e, &component.BuffControlState{})
 }

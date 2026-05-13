@@ -1,15 +1,64 @@
 package room
 
 import (
+	"battle/internal/battle/component"
+	"battle/internal/battle/config"
+	"battle/internal/battle/entity_factory"
+	"battle/internal/battle/land"
+	"battle/internal/battle/pb"
 	"context"
 	"sync"
 
 	"battle/ecs"
 	"battle/internal/battle/clock"
-	"battle/internal/battle/component"
 	"battle/internal/battle/system"
 	"battle/internal/battle/tick"
 )
+
+func newRoom(dungeonId int32, players []*pb.Player) (*Room, error) {
+	desc := config.GetDungeonConfigByID(dungeonId)
+	if desc == nil {
+		return nil, ErrNoDungeonConfig
+	}
+
+	grid, err := land.NewSpatialGrid(1, 10, 1, 10, 1)
+	if err != nil {
+		return nil, err
+	}
+	r := &Room{
+		id:    GetManager().NextID(),
+		tps:   60,
+		phase: PhaseLobby,
+		world: ecs.NewWorld(100),
+		grid:  grid,
+	}
+	r.world.SetContext(r.world)
+	component.Register(r.world)
+	//  添加怪物
+	for _, monsterId := range desc.Monster {
+		e, _ := entity_factory.CreateByID(r.World(), monsterId)
+		cellX, cellZ, _ := grid.FirstFreeCellDesc()
+		_ = grid.AddUnit(uint64(e), cellX, cellZ)
+		r.world.AddComponent(e, &component.Transform2D{
+			X: cellX,
+			Y: cellZ,
+		})
+	}
+
+	//  添加玩家
+	for _, player := range players {
+		_, _ = entity_factory.CreateByPlayer(r.World(), player)
+		cellX, cellZ, _ := grid.FirstFreeCellDesc()
+		_ = grid.AddUnit(uint64(e), cellX, cellZ)
+		r.world.AddComponent(e, &component.Transform2D{
+			X: cellX,
+			Y: cellZ,
+		})
+	}
+
+	GetManager().Add(r)
+	return r, nil
+}
 
 // Room 单局战斗隔离单元：独立 [ecs.World]、阶段字段 [Room.phase]、Clock/Loop。
 // 不依赖网络层；Gateway 只应持有 roomID 并转调 Manager/Room API。
@@ -18,6 +67,8 @@ type Room struct {
 	id    uint64
 	tps   int
 	phase Phase
+	// 地图
+	grid *land.Grid
 	// ecs系统
 	world *ecs.World
 	// 逻辑帧驱动
@@ -32,18 +83,9 @@ func (r *Room) phaseIs(p Phase) bool {
 	return r.phase == p
 }
 
-func newRoom(id uint64) *Room {
-	w := ecs.NewWorld(100)
-	component.Register(w)
-	return &Room{
-		id:    id,
-		tps:   60,
-		phase: PhaseLobby,
-		world: w,
-	}
-}
-
 func (r *Room) ID() uint64 { return r.id }
+
+func (r *Room) Grid() *land.Grid { return r.grid }
 
 func (r *Room) Phase() Phase {
 	return r.phase

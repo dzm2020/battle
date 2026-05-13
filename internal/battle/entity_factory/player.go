@@ -48,13 +48,7 @@ func initAttrComponentFromStats(w *ecs.World, e ecs.Entity, stats []pb.Attribute
 	}
 	attrs := ecs.EnsureGetComponent[*component.Attributes](w, e)
 	for _, attr := range stats {
-		key := string(attr.Type)
-		cur := int(attr.InitValue)
-		maxV := int(attr.MaxValue)
-		if maxV < cur {
-			maxV = cur
-		}
-		attrs.SetRange(key, cur, maxV)
+		attrs.SetRange(attr.Type, attr.InitValue, attr.MaxValue)
 	}
 	w.AddComponent(e, attrs)
 }

@@ -14,11 +14,11 @@ func statusFilter(ctx *Context, f config.Filter) bool {
 	if p.StatusMask == 0 {
 		return true
 	}
-	c, ok := ctx.World.GetComponent(ctx.Target, &component.ControlState{})
+	c, ok := ctx.World.GetComponent(ctx.Target, &component.BuffControlState{})
 	if !ok {
 		return false
 	}
-	fl := uint8(c.(*component.ControlState).Flags)
+	fl := uint8(c.(*component.BuffControlState).Flags)
 	m := uint8(p.StatusMask)
 	return (fl & m) != 0
 }

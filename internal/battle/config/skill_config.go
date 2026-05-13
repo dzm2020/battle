@@ -10,17 +10,6 @@ const (
 	SkillTypePassive SkillType = 1 // 被动技能（预留）
 )
 
-// AttributeType 消耗属性类型
-type AttributeType int
-
-const (
-	AttrNone   AttributeType = 0 // 无消耗
-	AttrHP     AttributeType = 1 // 生命值
-	AttrMP     AttributeType = 2 // 法力值
-	AttrEnergy AttributeType = 3 // 能量
-	AttrRage   AttributeType = 4 // 怒气
-)
-
 // EffectType 技能效果类型
 type EffectType int
 

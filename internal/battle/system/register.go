@@ -10,7 +10,7 @@ import (
 // 伤害结算 → 治疗结算 → 扣血 → 死亡移除 → 战斗结束判定。
 // Buff 模板见 [config.Tab.BuffConfigConfigByID]，技能配置见 [config.Tab.SkillConfigByID]。
 func AddSystems(w *ecs.World) {
-	w.AddSystem(&System{})
+	w.AddSystem(&BuffSystem{})
 	w.AddSystem(&skill.CooldownSystem{})
 	w.AddSystem(&skill.CastValidationSystem{})
 	w.AddSystem(&skill.CastStateSystem{})
@@ -19,4 +19,9 @@ func AddSystems(w *ecs.World) {
 	w.AddSystem(&HealthSystem{})
 	w.AddSystem(&DeathSystem{})
 	w.AddSystem(&BattleEndSystem{})
+}
+
+// AddCombatSystems 为 [AddSystems] 的别名（测试与文档中的命名）。
+func AddCombatSystems(w *ecs.World) {
+	AddSystems(w)
 }

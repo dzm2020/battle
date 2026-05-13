@@ -4,34 +4,20 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/config"
 	"sort"
+
+	"github.com/duke-git/lancet/v2/maputil"
 )
 
 type compare func(w *ecs.World, ref, a, b ecs.Entity) int
 
-var dict = make(map[config.TargetSortType]compare)
+var comparators = maputil.NewConcurrentMap[config.TargetSortType, compare](4)
 
-func registry(typ config.TargetSortType, cmp compare) {
-	if typ == config.SortNone {
-		return
-	}
-	if cmp == nil {
-		delete(dict, typ)
-		return
-	}
-	dict[typ] = cmp
-}
-
-func init() {
-	registry(config.SortHealth, compareHealthCurrent)
-	registry(config.SortPosition, compareDistanceSquared)
-}
-
-func Do(w *ecs.World, ref ecs.Entity, entityList []ecs.Entity, st config.TargetSortType, ord config.SortOrder) {
+func Apply(w *ecs.World, ref ecs.Entity, entityList []ecs.Entity, st config.TargetSortType, ord config.SortOrder) {
 	if len(entityList) <= 1 || st == config.SortNone {
 		return
 	}
-	cmp := dict[st]
-	if cmp == nil {
+	cmp, ok := comparators.Get(st)
+	if !ok || cmp == nil {
 		sort.SliceStable(entityList, func(i, j int) bool { return entityList[i] < entityList[j] })
 		return
 	}
@@ -45,4 +31,9 @@ func Do(w *ecs.World, ref ecs.Entity, entityList []ecs.Entity, st config.TargetS
 		}
 		return c < 0
 	})
+}
+
+func init() {
+	comparators.Set(config.SortHealth, compareHealthCurrent)
+	comparators.Set(config.SortPosition, compareDistanceSquared)
 }

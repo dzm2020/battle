@@ -21,8 +21,8 @@ type PlayerUnit struct {
 }
 
 type Attribute struct {
-	ID        int32            // 配置项唯一ID
-	Type      config.Attribute // 属性类型
-	InitValue int32            // 属性初始值
-	MaxValue  int32            // 属性最大值
+	ID        int32                // 配置项唯一ID
+	Type      config.AttributeType // 属性类型
+	InitValue int                  // 属性初始值
+	MaxValue  int                  // 属性最大值
 }

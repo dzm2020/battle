@@ -9,12 +9,9 @@ import (
 var ErrInvalidGridConfig = errors.New("spatial: invalid bounds or cellSize")
 
 // Unit 网格中的可移动对象；ID 可与 [battle/ecs.Entity]（uint64）对应。
-// Pos 使用水平面 X、Z（深度）；若世界使用 XY 平面，可将 component.Transform2D 的 Y 映射到 Pos.Z。
+// 逻辑位置由所在格子索引 cellX、cellZ 表示。
 type Unit struct {
-	ID  uint64
-	Pos struct {
-		X, Z float64
-	}
+	ID    uint64
 	cellX int
 	cellZ int
 }
@@ -22,6 +19,11 @@ type Unit struct {
 // GridCell 单个网格单元内的单位集合。
 type GridCell struct {
 	Units map[uint64]*Unit
+}
+
+// Empty 格子内无任何单位。
+func (c *GridCell) Empty() bool {
+	return c == nil || len(c.Units) == 0
 }
 
 // Grid 二维均匀网格空间分区（XZ 平面）。
@@ -94,18 +96,17 @@ func (g *Grid) cellIndex(x, z float64) (int, int) {
 }
 
 // AddUnit 将单位放入当前坐标所在格子，并写入 unit 内缓存的格子索引。必须先 Add 再 Update。
-func (g *Grid) AddUnit(unit *Unit) {
-	if unit == nil {
-		return
-	}
-	cx, cz := g.cellIndex(unit.Pos.X, unit.Pos.Z)
+func (g *Grid) AddUnit(unitID uint64, cx int, cz int) error {
+	unit := &Unit{ID: unitID}
+
 	cell := g.cells[cx][cz]
 	cell.Units[unit.ID] = unit
 
 	unit.cellX, unit.cellZ = cx, cz
+	return nil
 }
 
-// RemoveUnit 从网格移除单位（不改变 Pos）。未加入过网格时无副作用。
+// RemoveUnit 从网格移除单位。未加入过网格时无副作用。
 func (g *Grid) RemoveUnit(unit *Unit) {
 	if unit == nil {
 		return
@@ -119,14 +120,12 @@ func (g *Grid) RemoveUnit(unit *Unit) {
 }
 
 // UpdateUnit 更新坐标；若跨格则迁移。同格内只改坐标。
-func (g *Grid) UpdateUnit(unit *Unit, newX, newZ float64) {
+func (g *Grid) UpdateUnit(unit *Unit, newCX, newCZ int) {
 	if unit == nil {
 		return
 	}
-	newCX, newCZ := g.cellIndex(newX, newZ)
 
 	if newCX == unit.cellX && newCZ == unit.cellZ {
-		unit.Pos.X, unit.Pos.Z = newX, newZ
 		return
 	}
 
@@ -138,7 +137,6 @@ func (g *Grid) UpdateUnit(unit *Unit, newX, newZ float64) {
 
 	}
 
-	unit.Pos.X, unit.Pos.Z = newX, newZ
 	unit.cellX, unit.cellZ = newCX, newCZ
 
 	newCell := g.cells[newCX][newCZ]
@@ -146,31 +144,45 @@ func (g *Grid) UpdateUnit(unit *Unit, newX, newZ float64) {
 
 }
 
-// GetNearbyUnits 返回与 (centerX,centerZ) 平面距离不超过 radius 的单位（圆形筛选）。
-func (g *Grid) GetNearbyUnits(centerX, centerZ, radius float64) []*Unit {
+// GetNearbyUnits 返回与中心格 (centerCX, centerCZ) 在格子坐标系下欧氏距离不超过 radius 格的单位。
+// centerCX/centerCZ 为格子索引（非世界坐标）；radius 为格子半径（与 [Unit.cellX]/cellZ 同一单位）。
+func (g *Grid) GetNearbyUnits(centerCX, centerCZ, radius int) []*Unit {
+	if g == nil {
+		return nil
+	}
 	if radius < 0 {
 		radius = 0
 	}
 	r2 := radius * radius
 
-	minX := centerX - radius
-	maxX := centerX + radius
-	minZ := centerZ - radius
-	maxZ := centerZ + radius
+	minCX := centerCX - radius
+	maxCX := centerCX + radius
+	minCZ := centerCZ - radius
+	maxCZ := centerCZ + radius
 
-	minCX, minCZ := g.cellIndex(minX, minZ)
-	maxCX, maxCZ := g.cellIndex(maxX, maxZ)
+	if maxCX < 0 || minCX >= g.width || maxCZ < 0 || minCZ >= g.height {
+		return nil
+	}
+	if minCX < 0 {
+		minCX = 0
+	}
+	if maxCX >= g.width {
+		maxCX = g.width - 1
+	}
+	if minCZ < 0 {
+		minCZ = 0
+	}
+	if maxCZ >= g.height {
+		maxCZ = g.height - 1
+	}
 
 	out := make([]*Unit, 0, 16)
 	for cx := minCX; cx <= maxCX; cx++ {
 		for cz := minCZ; cz <= maxCZ; cz++ {
-			if cx < 0 || cx >= g.width || cz < 0 || cz >= g.height {
-				continue
-			}
 			cell := g.cells[cx][cz]
 			for _, u := range cell.Units {
-				dx := u.Pos.X - centerX
-				dz := u.Pos.Z - centerZ
+				dx := u.cellX - centerCX
+				dz := u.cellZ - centerCZ
 				if dx*dx+dz*dz <= r2 {
 					out = append(out, u)
 				}
@@ -178,4 +190,58 @@ func (g *Grid) GetNearbyUnits(centerX, centerZ, radius float64) []*Unit {
 		}
 	}
 	return out
+}
+
+// ForEachCellAsc 正序遍历格子：cellX ∈ [0,width)，cellZ ∈ [0,height)，先增 X 再增 Z（列优先可理解为先扫一行 Z）。
+func (g *Grid) ForEachCellAsc(fn func(cellX, cellZ int, cell *GridCell)) {
+	if g == nil || fn == nil {
+		return
+	}
+	for cx := 0; cx < g.width; cx++ {
+		for cz := 0; cz < g.height; cz++ {
+			fn(cx, cz, g.cells[cx][cz])
+		}
+	}
+}
+
+// ForEachCellDesc 倒序遍历格子：从 (width-1, height-1) 递减至 (0,0)，与 [ForEachCellAsc] 顺序相反。
+func (g *Grid) ForEachCellDesc(fn func(cellX, cellZ int, cell *GridCell)) {
+	if g == nil || fn == nil {
+		return
+	}
+	for cx := g.width - 1; cx >= 0; cx-- {
+		for cz := g.height - 1; cz >= 0; cz-- {
+			fn(cx, cz, g.cells[cx][cz])
+		}
+	}
+}
+
+// FirstFreeCellAsc 按与 [ForEachCellAsc] 相同顺序找到第一个空闲格；若全部占用则 ok=false。
+func (g *Grid) FirstFreeCellAsc() (cellX, cellZ int, ok bool) {
+	if g == nil {
+		return 0, 0, false
+	}
+	for cx := 0; cx < g.width; cx++ {
+		for cz := 0; cz < g.height; cz++ {
+			if g.cells[cx][cz].Empty() {
+				return cx, cz, true
+			}
+		}
+	}
+	return 0, 0, false
+}
+
+// FirstFreeCellDesc 按与 [ForEachCellDesc] 相同顺序找到第一个空闲格；若全部占用则 ok=false。
+func (g *Grid) FirstFreeCellDesc() (cellX, cellZ int, ok bool) {
+	if g == nil {
+		return 0, 0, false
+	}
+	for cx := g.width - 1; cx >= 0; cx-- {
+		for cz := g.height - 1; cz >= 0; cz-- {
+			if g.cells[cx][cz].Empty() {
+				return cx, cz, true
+			}
+		}
+	}
+	return 0, 0, false
 }

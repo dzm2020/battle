@@ -126,7 +126,7 @@ func TestSkill(t *testing.T) {
 		system.AddCombatSystems(w)
 		caster := spawnCombatUnit(w, 0, 100, 100)
 		target := spawnCombatUnit(w, 1, 100, 0)
-		w.AddComponent(caster, &component.ControlState{Flags: utils.FlagStunned})
+		w.AddComponent(caster, &component.BuffControlState{Flags: component.FlagStunned})
 		if !skill_effect.AddSkill(w, caster, 1) {
 			t.Fatal("AddSkill 失败")
 		}
@@ -143,7 +143,7 @@ func TestSkill(t *testing.T) {
 		system.AddCombatSystems(w)
 		caster := spawnCombatUnit(w, 0, 100, 100)
 		target := spawnCombatUnit(w, 1, 100, 0)
-		w.AddComponent(caster, &component.ControlState{Flags: utils.FlagSilenced})
+		w.AddComponent(caster, &component.BuffControlState{Flags: component.FlagSilenced})
 		if !skill_effect.AddSkill(w, caster, 1) {
 			t.Fatal("AddSkill 失败")
 		}

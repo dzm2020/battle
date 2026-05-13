@@ -56,3 +56,18 @@ func GetEntityAttributeValue(w *ecs.World, e ecs.Entity, name string) (float64, 
 	}
 	return 0, false
 }
+
+func GetAttributeFinalValue(w *ecs.World, e ecs.Entity, typ config.AttributeType) int {
+	var value int
+	if a, ok := w.GetComponent(e, &component.Attributes{}); ok {
+		attr := a.(*component.Attributes)
+		if attr.Get(typ) > 0 {
+			value = attr.Get(typ)
+		}
+		if sm, ok := w.GetComponent(e, &component.BuffStatModifiers{}); ok {
+			modifier := sm.(*component.BuffStatModifiers)
+			value += int(modifier.Modifiers[typ])
+		}
+	}
+	return value
+}

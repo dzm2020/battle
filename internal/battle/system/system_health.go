@@ -6,7 +6,7 @@ import (
 	"battle/internal/battle/config"
 )
 
-// HealthSystem 应用 [ResolvedDamage]，派发 [event.DamageApplied]，再移除 ResolvedDamage。
+// HealthSystem 消费 [ResolvedDamage]，从 [Attributes] 的 hp 扣减并同步 [Health]（若存在），然后移除 [ResolvedDamage]。
 type HealthSystem struct {
 	world *ecs.World
 	q     *ecs.Query2[*component.ResolvedDamage, *component.Attributes]
@@ -18,36 +18,22 @@ func (s *HealthSystem) Initialize(w *ecs.World) {
 }
 
 func (s *HealthSystem) Update(dt float64) {
-	s.q.ForEach(func(e ecs.Entity, rd *component.ResolvedDamage, h *component.Attributes) {
+	s.q.ForEach(func(e ecs.Entity, rd *component.ResolvedDamage, attr *component.Attributes) {
 		if rd.Amount <= 0 {
 			s.world.RemoveComponent(e, &component.ResolvedDamage{})
 			return
 		}
-
-		hp := h.Get(config.AttrHp)
-		if hc, ok := s.world.GetComponent(e, &component.Health{}); ok {
-			cur := hc.(*component.Health).Current
-			if hp <= 0 && cur > 0 {
-				hp = cur
+		attr.Sub(config.AttrHp, rd.Amount)
+		if h, ok := s.world.GetComponent(e, &component.Health{}); ok {
+			hc := h.(*component.Health)
+			hc.Current = attr.Get(config.AttrHp)
+			if hc.Current < 0 {
+				hc.Current = 0
+			}
+			if hc.Max > 0 && hc.Current > hc.Max {
+				hc.Current = hc.Max
 			}
 		}
-
-		if rd.Amount > hp {
-			hp = 0
-		} else {
-			hp -= rd.Amount
-		}
-
-		h.Set(config.AttrHp, hp)
-
-		if hc, ok := s.world.GetComponent(e, &component.Health{}); ok {
-			cur := hc.(*component.Health)
-			cur.Current = hp
-			if cur.Max > 0 && cur.Current > cur.Max {
-				cur.Current = cur.Max
-			}
-		}
-
 		s.world.RemoveComponent(e, &component.ResolvedDamage{})
 	})
 }

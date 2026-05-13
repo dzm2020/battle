@@ -19,7 +19,7 @@ const BattleEndPayloadDraw = -1
 // 须注册在 [DeathSystem] 之后（见 [AddCombatSystems]），以便死亡实体已从世界移除后再统计。
 type BattleEndSystem struct {
 	world        *ecs.World
-	q            *ecs.Query2[*component.Team, *component.Health]
+	q            *ecs.Query2[*component.Team, *component.Attributes]
 	done         bool
 	prevSides    int // -1 未建立基线；之后为上一帧结算后的存活阵营数
 	openingSides int // Initialize 时的存活阵营数（世界已含实体时应先加人再 Register 本系统）
@@ -27,7 +27,7 @@ type BattleEndSystem struct {
 
 func (s *BattleEndSystem) Initialize(w *ecs.World) {
 	s.world = w
-	s.q = ecs.NewQuery2[*component.Team, *component.Health](w)
+	s.q = ecs.NewQuery2[*component.Team, *component.Attributes](w)
 	s.prevSides = -1
 	s.openingSides, _ = countAliveSides(s.q)
 }
@@ -61,16 +61,16 @@ func (s *BattleEndSystem) Update(dt float64) {
 func (s *BattleEndSystem) finish(winnerPayload int) {
 	s.done = true
 	s.world.EmitEvent(ecs.Event{
-		Kind:    event.BattleEnd,
+		Kind:    event.KindBattleEnd,
 		Payload: event.Payload{IntPayload: winnerPayload},
 	})
 }
 
 // countAliveSides 返回有存活单位的阵营个数；若恰好 1 个阵营则返回该 Side。
-func countAliveSides(q *ecs.Query2[*component.Team, *component.Health]) (count int, soleSide uint8) {
+func countAliveSides(q *ecs.Query2[*component.Team, *component.Attributes]) (count int, soleSide uint8) {
 	seen := make(map[uint8]bool)
-	q.ForEach(func(_ ecs.Entity, t *component.Team, h *component.Health) {
-		if h.Current <= 0 {
+	q.ForEach(func(_ ecs.Entity, t *component.Team, h *component.Attributes) {
+		if h.GetHP() <= 0 {
 			return
 		}
 		seen[t.Side] = true

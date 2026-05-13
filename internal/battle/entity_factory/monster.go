@@ -76,13 +76,12 @@ func initAttrComponentFromConfig(w *ecs.World, e ecs.Entity, attrConfigIds []int
 			log.Error("属性表缺少 id=%d", attrRowID)
 			return
 		}
-		key := string(attrDesc.Type)
 		cur := int(attrDesc.InitValue)
 		maxV := int(attrDesc.MaxValue)
 		if maxV < cur {
 			maxV = cur
 		}
-		attrs.SetRange(key, cur, maxV)
+		attrs.SetRange(attrDesc.Type, cur, maxV)
 
 	}
 	//  加入组件

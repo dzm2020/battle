@@ -51,7 +51,7 @@ func (s *CastValidationSystem) Update(dt float64) {
 			s.world.RemoveComponent(e, &component.SkillCastRequest{})
 			return
 		}
-		if cs, ok := s.world.GetComponent(e, &component.ControlState{}); ok && cs.(*component.ControlState).Flags.HasSilence() {
+		if cs, ok := s.world.GetComponent(e, &component.BuffControlState{}); ok && cs.(*component.BuffControlState).Flags.HasSilence() {
 			s.world.RemoveComponent(e, &component.SkillCastRequest{})
 			return
 		}
@@ -62,7 +62,7 @@ func (s *CastValidationSystem) Update(dt float64) {
 			return
 		}
 
-		resourceKey, cost := skillCost(skillCfg)
+		resourceKey, cost := skillCfg.ConsumeType, skillCfg.ConsumeValue
 		if cost > 0 {
 			if attrs.Get(resourceKey) < cost {
 				s.world.RemoveComponent(e, &component.SkillCastRequest{})
@@ -96,26 +96,4 @@ func findRuntimeSkill(set *component.SkillSet, skillID int) *component.RuntimeSk
 		}
 	}
 	return nil
-}
-
-func skillCost(desc *config.SkillBaseConfig) (resourceKey string, cost int) {
-	if desc == nil {
-		return "", 0
-	}
-	cost = desc.ConsumeValue
-	if cost <= 0 {
-		return "", 0
-	}
-	switch desc.ConsumeType {
-	case config.AttrHP:
-		return config.AttrHp, cost
-	case config.AttrEnergy:
-		return "energy", cost
-	case config.AttrRage:
-		return "rage", cost
-	case config.AttrMP:
-		fallthrough
-	default:
-		return config.AttrMana, cost
-	}
 }

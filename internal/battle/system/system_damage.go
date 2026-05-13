@@ -12,137 +12,80 @@ import (
 	"math/rand/v2"
 )
 
-// DamageSystem 读取 [PendingDamage]，可选执行 **命中→格挡→暴击**，再经护甲/魔抗减免写入 [ResolvedDamage]。
+// DamageSystem 读取 [DamageQueue] 中各条 [PendingDamage]，可选执行 **命中→暴击**，再经护甲/魔抗减免，合并写入 [ResolvedDamage]。
 type DamageSystem struct {
 	world *ecs.World
-	q     *ecs.Query[*component.PendingDamage]
+	q     *ecs.Query2[*component.DamageQueue, *component.Attributes]
 }
 
 func (s *DamageSystem) Initialize(w *ecs.World) {
 	s.world = w
-	s.q = ecs.NewQuery[*component.PendingDamage](w)
+	s.q = ecs.NewQuery2[*component.DamageQueue, *component.Attributes](w)
 }
 
 func (s *DamageSystem) Update(dt float64) {
-	s.q.ForEach(func(victim ecs.Entity, pd *component.PendingDamage) {
-		raw := pd.Amount
-		if raw <= 0 {
-			s.world.RemoveComponent(victim, &component.PendingDamage{})
+	s.q.ForEach(func(target ecs.Entity, dq *component.DamageQueue, _ *component.Attributes) {
+		if len(dq.Entries) == 0 {
 			return
 		}
+		entries := dq.Entries
+		dq.Entries = nil
 
-		source := pd.Source
-
-		if source != 0 && pd.Type != component.DamageTrue {
-			hitChance := combatHitChance(s.world, source, victim)
-			if int(rand.UintN(utils.Thousand)) >= hitChance {
-				s.world.EmitEvent(ecs.Event{
-					Kind: event.DamageMissed,
-					Payload: event.Payload{
-						Entity:   victim,
-						Attacker: source,
-					},
-				})
-				s.world.RemoveComponent(victim, &component.PendingDamage{})
-				return
+		total := 0
+		for _, pd := range entries {
+			if pd == nil {
+				continue
 			}
-			//  计算暴击加成
-			raw = applyCritIfAny(s.world, source, raw)
+			raw := int(math.Floor(pd.RawDamage))
+			if raw <= 0 {
+				continue
+			}
+			final := s.calDamage(s.world, target, pd)
+			total += final
 		}
-		//  计算防御减免
-		defPhys, defMag := effectiveDefense(s.world, victim)
-		final := MitigatedDamage(raw, pd.Type, defPhys, defMag)
 
-		s.world.RemoveComponent(victim, &component.PendingDamage{})
-		s.world.AddComponent(victim, &component.ResolvedDamage{Amount: final})
+		if total <= 0 {
+			return
+		}
+		resolved := ecs.EnsureGetComponent[*component.ResolvedDamage](s.world, target)
+		resolved.Amount += total
 	})
 }
 
-// 获取防御值
-func effectiveDefense(w *ecs.World, victim ecs.Entity) (phys int, mag int) {
-	//  基础物防 魔防
-	if c, ok := w.GetComponent(victim, &component.Attributes{}); ok {
-		a := c.(*component.Attributes)
-		phys = a.Get(config.AttrArmor)
-		mag = a.Get(config.AttrMagicResist)
-	}
-	//  buff提供的物防 魔防
-	if sm, ok := w.GetComponent(victim, &component.StatModifiers{}); ok {
-		m := sm.(*component.StatModifiers)
-		phys += m.ArmorDelta
-		mag += m.MRDelta
-	}
-	return phys, mag
-}
-
-// 命中率计算
-func combatHitChance(w *ecs.World, attacker, victim ecs.Entity) int {
-	hit := utils.DefaultHitPermille
-	dodge := utils.DefaultDodgePermille
-	if a, ok := w.GetComponent(attacker, &component.Attributes{}); ok {
-		attr := a.(*component.Attributes)
-		if attr.Get(config.AttrHitPermille) > 0 {
-			hit = attr.Get(config.AttrHitPermille)
-		}
-		if sm, ok := w.GetComponent(attacker, &component.StatModifiers{}); ok {
-			hit += sm.(*component.StatModifiers).HitDeltaPermille
-		}
-	}
-	if v, ok := w.GetComponent(victim, &component.Attributes{}); ok {
-		attr := v.(*component.Attributes)
-		if attr.Get(config.AttrDodgePermille) > 0 {
-			dodge = attr.Get(config.AttrDodgePermille)
-		}
-		if sm, ok := w.GetComponent(victim, &component.StatModifiers{}); ok {
-			dodge += sm.(*component.StatModifiers).DodgeDeltaPermille
-		}
-	}
+func (s *DamageSystem) calDamage(w *ecs.World, target ecs.Entity, entry *component.PendingDamage) int {
+	damage := int(0)
+	hit := utils.GetAttributeFinalValue(w, entry.Source, config.AttrHitPermille)
+	dodge := utils.GetAttributeFinalValue(w, target, config.AttrDodgePermille)
 	chance := hit - dodge
-	return chance
-}
-
-// 计算暴击
-func applyCritIfAny(w *ecs.World, attacker ecs.Entity, raw int) int {
-	a, ok := w.GetComponent(attacker, &component.Attributes{})
-	if !ok {
-		return raw
-	}
-	attr := a.(*component.Attributes)
-	crit := attr.Get(config.AttrCritRate)
-	if crit <= 0 {
-		crit = utils.DefaultCritRatePermille
-	}
-	if sm, ok := w.GetComponent(attacker, &component.StatModifiers{}); ok {
-		crit += sm.(*component.StatModifiers).CritRateDeltaPermille
-	}
-	if int(rand.UintN(utils.Thousand)) >= crit {
-		return raw
-	}
-	bonus := attr.Get(config.AttrCritDamage)
-	if bonus <= 0 {
-		bonus = utils.DefaultCritDamageBonusPermille
-	}
-	if sm, ok := w.GetComponent(attacker, &component.StatModifiers{}); ok {
-		bonus += sm.(*component.StatModifiers).CritDamageDeltaPermille
-	}
-	mult := utils.Thousand + bonus
-	return int(math.Floor(float64(raw*mult) / utils.Thousand))
-}
-
-// MitigatedDamage 根据类型与护甲/魔抗计算最终伤害。
-func MitigatedDamage(raw int, t component.DamageType, physicalArmor, magicResist int) int {
-	if raw <= 0 {
+	//  miss
+	if int(rand.UintN(utils.Thousand)) > chance {
+		s.world.EmitEvent(ecs.Event{
+			Kind: event.KindDamageMissed,
+			Payload: event.Payload{
+				Entity:   target,
+				Attacker: entry.Source,
+			},
+		})
 		return 0
 	}
-	if t == component.DamageTrue {
-		return raw
+	//  暴击伤害
+	crit := utils.GetAttributeFinalValue(w, entry.Source, config.AttrCritRate)
+	if int(rand.UintN(utils.Thousand)) < crit {
+		bonus := utils.GetAttributeFinalValue(w, entry.Source, config.AttrCritDamage)
+		mult := utils.Thousand + bonus
+		damage = int(math.Floor(float64(int(entry.RawDamage)*mult) / utils.Thousand))
 	}
+
+	if entry.Type == component.DamageTrue {
+		return damage
+	}
+	//  抗性减少伤害
 	def := 0
-	switch t {
+	switch entry.Type {
 	case component.DamagePhysical:
-		def = physicalArmor
-	case component.DamageMagical:
-		def = magicResist
+		def = utils.GetAttributeFinalValue(w, target, config.AttrArmor)
+	case component.DamageMagic:
+		def = utils.GetAttributeFinalValue(w, target, config.AttrMagicResist)
 	default:
 		def = 0
 	}
@@ -150,9 +93,6 @@ func MitigatedDamage(raw int, t component.DamageType, physicalArmor, magicResist
 	if denom < 1 {
 		denom = 1
 	}
-	out := int(math.Floor(float64(raw*utils.Hundred) / float64(denom)))
-	if out < 0 {
-		return 0
-	}
-	return out
+	damage = int(math.Floor(float64(damage*utils.Hundred) / float64(denom)))
+	return damage
 }

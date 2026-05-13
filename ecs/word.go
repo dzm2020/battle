@@ -8,6 +8,7 @@ type World struct {
 	entities map[Entity]*EntityComponents
 	systems  []System
 	events   *eventBus
+	ctx      any
 }
 
 // NewWorld 创建世界；lifecycle 用于在实体/组件生命周期填充 [Event.Payload]（可为零值，此时 Payload 恒为 nil）。
@@ -70,6 +71,16 @@ func (w *World) EntityExists(e Entity) bool {
 	}
 	_, ok := w.entities[e]
 	return ok
+}
+
+// ForEachEntity 遍历当前世界上仍存在的实体（map 迭代顺序不稳定）。
+func (w *World) ForEachEntity(fn func(e Entity)) {
+	if w == nil || fn == nil {
+		return
+	}
+	for e := range w.entities {
+		fn(e)
+	}
 }
 
 // RemoveAllEntities 移除世界上全部实体（按当前集合快照逐个删除）。
@@ -139,4 +150,11 @@ func (w *World) Update(dt float64) {
 // EmitEvent 派发业务自定义事件（与实体生命周期事件共用同一套订阅）。
 func (w *World) EmitEvent(e Event) {
 	w.events.emit(e)
+}
+
+func (w *World) SetContext(ctx any) {
+	w.ctx = ctx
+}
+func (w *World) GetContext() any {
+	return w.ctx
 }

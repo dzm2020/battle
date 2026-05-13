@@ -4,28 +4,38 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"errors"
 )
 
-// handleSkillEffectDamage 造成伤害：写入 [component.PendingDamage]，由 [system.DamageSystem] 结算。
+// handleDamage 造成伤害：写入目标的 [component.DamageQueue]，由 [system.DamageSystem] 结算。
 // IntParams[0]：伤害量；IntParams[1] 可选：[component.DamageType]（0 物 / 1 法 / 2 真），缺省为物理。
-func handleSkillEffectDamage(w *ecs.World, caster, target ecs.Entity, eff *config.SkillEffectConfig) {
-	if len(eff.IntParams) < 1 {
-		return
+func handleDamage(ctx *Context, desc *config.SkillEffectConfig) error {
+	if len(desc.IntParams) < 1 {
+		return errors.New("int param number must be greater than 0")
 	}
-	amt := eff.IntParams[0]
+	amt := desc.IntParams[0]
 	if amt <= 0 {
-		return
+		return errors.New("int param number must be greater than 0")
 	}
-	dt := component.DamagePhysical
-	if len(eff.IntParams) >= 2 {
-		switch eff.IntParams[1] {
-		case int(component.DamageMagical):
-			dt = component.DamageMagical
+
+	dmgType := component.DamagePhysical
+	if len(desc.IntParams) >= 2 {
+		switch desc.IntParams[1] {
+		case int(component.DamagePhysical):
+			dmgType = component.DamagePhysical
+		case int(component.DamageMagic):
+			dmgType = component.DamageMagic
 		case int(component.DamageTrue):
-			dt = component.DamageTrue
-		default:
-			dt = component.DamagePhysical
+			dmgType = component.DamageTrue
 		}
 	}
-	component.MergePendingDamage(w, target, amt, dt, caster)
+
+	q := ecs.EnsureGetComponent[*component.DamageQueue](ctx.Word, ctx.Target)
+	q.Add(&component.PendingDamage{
+		Source:    ctx.Caster,
+		RawDamage: float64(amt),
+		Type:      dmgType,
+	})
+
+	return nil
 }

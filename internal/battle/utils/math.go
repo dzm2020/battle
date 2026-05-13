@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+// 战斗数值换算：千分比（permille）、百分比分母等。
+const (
+	Thousand = 1000
+	Hundred  = 100
+)
+
 func CompareFloat64(cur float64, op string, val float64) bool {
 	switch strings.TrimSpace(op) {
 	case ">":
