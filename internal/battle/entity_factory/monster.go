@@ -2,11 +2,9 @@ package entity_factory
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/buff"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 	"battle/internal/battle/log"
-	"battle/internal/battle/skill"
 	"errors"
 	"fmt"
 )
@@ -22,68 +20,61 @@ func init() {
 
 }
 
-type monsterBuilder func(w *ecs.World, desc *config.UnitConfig, coms ...ecs.Component) (ecs.Entity, error)
+type builder func(w *ecs.World, desc *config.UnitConfig, coms ...ecs.Component) (ecs.Entity, error)
 
 var (
-	blueprints = make(map[string]monsterBuilder)
+	blueprints = make(map[string]builder)
 )
 
 // ====================== 方式一：蓝图ID创建 ======================
-func register(id string, builder monsterBuilder) {
+func register(id string, builder builder) {
 	blueprints[id] = builder
 }
 
-func CreateByID(w *ecs.World, unitID int32, coms ...ecs.Component) (ecs.Entity, error) {
+func CreateByID(w *ecs.World, unitID int32, components ...ecs.Component) (ecs.Entity, error) {
 	unitDesc := config.GetUnitConfigByID(unitID)
 	if unitDesc == nil {
 		return 0, fmt.Errorf("%w: %d", ErrUnknownUnit, unitID)
 	}
 	if builder, ok := blueprints[unitDesc.Builder]; ok {
-		return builder(w, unitDesc, coms...)
+		return builder(w, unitDesc, components...)
 	} else {
-		return defaultBuilder(w, unitDesc, coms...)
+		return defaultBuilder(w, unitDesc, components...)
 	}
 }
 
 func defaultBuilder(w *ecs.World, desc *config.UnitConfig, components ...ecs.Component) (ecs.Entity, error) {
-	e := w.CreateEntity()
-	//  初始化属性
-	initAttrComponentFromConfig(w, e, desc.Stats)
-	//  初始化技能
-	if err := skill.Add(w, e, desc.Ability...); err != nil {
-		w.RemoveEntity(e)
-		return 0, fmt.Errorf("unit: 初始技能  挂载失败（单位模板 %d）: %w", desc.ID, err)
+	e, err := spawnUnitFromConfigDesc(w, desc, components...)
+	if err != nil {
+		return 0, fmt.Errorf("单位模板 %s: %w", desc.ID, err)
 	}
-	//  初始化buff
-	if err := buff.Add(w, e, e, desc.BuffDefIDs...); err != nil {
-		w.RemoveEntity(e)
-		return 0, fmt.Errorf("unit: 初始 Buff 挂载失败（单位模板 %d）: %w", desc.ID, err)
-	}
-	//  初始化组件
-	for _, com := range components {
-		w.AddComponent(e, com)
-	}
-
 	return e, nil
 }
 
-func initAttrComponentFromConfig(w *ecs.World, e ecs.Entity, attrConfigIds []int32) {
-	attrs := ecs.EnsureGetComponent[*component.Attributes](w, e)
+func spawnUnitFromConfigDesc(w *ecs.World, desc *config.UnitConfig, Components ...ecs.Component) (ecs.Entity, error) {
+	if err := Spawn(w, SpawnUnitOptions{
+		Abilities:  desc.Ability,
+		BuffDefIDs: desc.BuffDefIDs,
+		Components: Components,
+		Attributes: buildAttrFromConfig(desc.Stats),
+	}); err != nil {
+		return 0, err
+	}
+	return e, nil
+}
+
+func buildAttrFromConfig(attrConfigIds []int32) map[config.AttributeType]*component.Attribute {
+	base := make(map[config.AttributeType]*component.Attribute)
 	for _, attrRowID := range attrConfigIds {
 		attrDesc := config.GetAttributeConfigByID(attrRowID)
 		if attrDesc == nil {
-			w.RemoveEntity(e)
 			log.Error("属性表缺少 id=%d", attrRowID)
-			return
+			continue
 		}
-		cur := int(attrDesc.InitValue)
-		maxV := int(attrDesc.MaxValue)
-		if maxV < cur {
-			maxV = cur
+		base[attrDesc.Type] = &component.Attribute{
+			Current: int(attrDesc.InitValue),
+			Max:     int(attrDesc.MaxValue),
 		}
-		attrs.SetRange(attrDesc.Type, cur, maxV)
-
 	}
-	//  加入组件
-	w.AddComponent(e, attrs)
+	return base
 }

@@ -2,9 +2,17 @@ package component
 
 // Team 战斗阵营/队伍标识；与 [skill.CampRelation] 组合筛选敌友。
 // 未挂载 Team 的实体不参与阵营差集逻辑（单体技能仍可通过显式目标攻击）。
+
+type SideType string
+
+const (
+	SideTypeRed  SideType = "red"
+	SideTypeBlue SideType = "blue"
+)
+
 type Team struct {
 	// Side 阵营编号；仅在同局内比较有区分意义，相同 Side 互为友方。
-	Side uint8
+	Side SideType
 }
 
 func (*Team) Component() {}

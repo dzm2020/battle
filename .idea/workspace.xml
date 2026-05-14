@@ -33,21 +33,25 @@
     &quot;RunOnceActivity.GoLinterPluginOnboarding&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.GoLinterPluginStorageMigration&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
     &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
     &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;E:/github/battleDemo&quot;
+    &quot;last_opened_file_path&quot;: &quot;E:/github/battleDemo/internal/battle/component&quot;
   }
 }</component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\github\battleDemo\internal\battle\component" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="E:\github\battleDemo\internal\battle\target_selector\target_fliter" />
-      <recent name="E:\github\battleDemo\internal\battle\utils" />
-      <recent name="E:\github\battleDemo\internal\battle\system\skill" />
-      <recent name="E:\github\battleDemo\internal\battle\system\skill\skill_effect" />
+      <recent name="E:\github\battleDemo\internal\battle\buff\buff_util" />
+      <recent name="E:\github\battleDemo\internal\battle\buff" />
+      <recent name="E:\github\battleDemo\internal\battle\skill" />
       <recent name="E:\github\battleDemo\internal\battle\system" />
+      <recent name="E:\github\battleDemo\internal\battle\target_selector\target_fliter" />
     </key>
   </component>
   <component name="RunManager" selected="Go 测试.battle/test 中的 TestSkill/效果·对选取目标施加_Buff">
