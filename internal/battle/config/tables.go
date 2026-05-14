@@ -27,8 +27,9 @@ type Tables struct {
 	SkillConfigByID        map[int32]*SkillBaseConfig
 	SkillEffectConfigByID  map[int32]*SkillEffectConfig  // 技能效果（[EffectID] → 行）
 	TargetSelectConfigByID map[int32]*TargetSelectConfig // 选目标规则
-	UnitConfigByID         map[int32]*UnitConfig        // 单位模板（顶层键 → 行）
+	UnitConfigByID         map[int32]*UnitConfig         // 单位模板（顶层键 → 行）
 	DungeonConfigByID      map[int32]*DungeonConfig      // 副本配置（顶层键 → 行）
+	MapConfigByID          map[int32]*MapConfig          // 地图配置（顶层键 → 行）
 }
 
 func (t *Tables) load(path string) {
@@ -39,6 +40,7 @@ func (t *Tables) load(path string) {
 	t.loadTargetSelectConfig(path)
 	t.loadUnitConfig(path)
 	t.loadDungeonConfig(path)
+	t.loadMapConfig(path)
 }
 
 func (t *Tables) loadAttributeConfig(path string) {
@@ -111,6 +113,16 @@ func (t *Tables) loadDungeonConfig(path string) {
 	}
 }
 
+func (t *Tables) loadMapConfig(path string) {
+	if t.MapConfigByID == nil {
+		t.MapConfigByID = make(map[int32]*MapConfig)
+	}
+	err := ReadJSONFromFile(path2.Join(path, "Map.json"), &t.MapConfigByID)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func GetSkillConfigByID(id int32) *SkillBaseConfig {
 	return Tab.SkillConfigByID[id]
 }
@@ -134,4 +146,12 @@ func GetDungeonConfigByID(id int32) *DungeonConfig {
 		return nil
 	}
 	return Tab.DungeonConfigByID[id]
+}
+
+// GetMapConfigByID 按地图表 id 取一行；未加载或不存在时返回 nil。
+func GetMapConfigByID(id int32) *MapConfig {
+	if Tab == nil || Tab.MapConfigByID == nil {
+		return nil
+	}
+	return Tab.MapConfigByID[id]
 }

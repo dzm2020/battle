@@ -22,13 +22,12 @@ func TestSpatialGrid_AddUpdateNearby(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	u1 := &Unit{ID: 1}
-	if err := g.AddUnit(u1, 0, 0); err != nil {
+	if err := g.AddUnit(1, 0, 0); err != nil {
 		t.Fatal(err)
 	}
+	u1 := g.cells[0][0].Units[1]
 
-	u2 := &Unit{ID: 2}
-	if err := g.AddUnit(u2, 10, 10); err != nil {
+	if err := g.AddUnit(2, 10, 10); err != nil {
 		t.Fatal(err)
 	}
 
@@ -58,8 +57,7 @@ func TestSpatialGrid_AddUpdateNearby(t *testing.T) {
 
 func TestGetNearbyUnits_Radius(t *testing.T) {
 	g, _ := NewSpatialGrid(0, 0, 20, 20, 1)
-	u := &Unit{ID: 1}
-	_ = g.AddUnit(u, 10, 0)
+	_ = g.AddUnit(1, 10, 0)
 	list := g.GetNearbyUnits(0, 0, 9)
 	if len(list) != 0 {
 		t.Fatal("outside radius should be empty")
@@ -124,8 +122,7 @@ func TestFirstFreeCell_AscDesc(t *testing.T) {
 		t.Fatalf("empty grid desc want (1,1) ok got (%d,%d) ok=%v", x1, z1, ok)
 	}
 
-	u := &Unit{ID: 1}
-	_ = g.AddUnit(u, 0, 0)
+	_ = g.AddUnit(1, 0, 0)
 	x0, z0, ok = g.FirstFreeCellAsc()
 	if !ok || x0 != 0 || z0 != 1 {
 		t.Fatalf("one unit at (0,0) asc want (0,1) got (%d,%d) ok=%v", x0, z0, ok)
@@ -135,13 +132,12 @@ func TestFirstFreeCell_AscDesc(t *testing.T) {
 		t.Fatalf("desc still want (1,1) got (%d,%d) ok=%v", x1, z1, ok)
 	}
 
-	for id, pos := range []struct{ cx, cz int }{
+	for i, pos := range []struct{ cx, cz int }{
 		{0, 1},
 		{1, 0},
 		{1, 1},
 	} {
-		u2 := &Unit{ID: uint64(10 + id)}
-		_ = g.AddUnit(u2, pos.cx, pos.cz)
+		_ = g.AddUnit(uint64(10+i), pos.cx, pos.cz)
 	}
 	_, _, ok = g.FirstFreeCellAsc()
 	if ok {
@@ -150,5 +146,22 @@ func TestFirstFreeCell_AscDesc(t *testing.T) {
 	_, _, ok = g.FirstFreeCellDesc()
 	if ok {
 		t.Fatal("full grid desc want ok=false")
+	}
+}
+
+func TestRemoveUnitByID(t *testing.T) {
+	g, err := NewSpatialGrid(0, 0, 5, 5, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if g.RemoveUnitByID(99) {
+		t.Fatal("missing id want false")
+	}
+	_ = g.AddUnit(42, 1, 2)
+	if ok := g.RemoveUnitByID(42); !ok {
+		t.Fatal("want remove existing")
+	}
+	if g.RemoveUnitByID(42) {
+		t.Fatal("double remove want false")
 	}
 }

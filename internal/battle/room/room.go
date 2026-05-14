@@ -1,63 +1,28 @@
 package room
 
 import (
-	"battle/internal/battle/component"
-	"battle/internal/battle/config"
-	"battle/internal/battle/entity_factory"
-	"battle/internal/battle/land"
-	"battle/internal/battle/pb"
 	"context"
 	"sync"
 
 	"battle/ecs"
 	"battle/internal/battle/clock"
-	"battle/internal/battle/system"
+	"battle/internal/battle/component"
+	"battle/internal/battle/land"
 	"battle/internal/battle/tick"
 )
 
-func newRoom(dungeonId int32, players []*pb.Player) (*Room, error) {
-	desc := config.GetDungeonConfigByID(dungeonId)
-	if desc == nil {
-		return nil, ErrNoDungeonConfig
-	}
-
-	grid, err := land.NewSpatialGrid(1, 10, 1, 10, 1)
-	if err != nil {
-		return nil, err
-	}
+// New 分配房间 id、创建 ECS 世界并完成 [component.Register]；尚未装配地图与单位。
+// 由 [battle/internal/battle/room_builder] 在创建流程中调用后再 [SetGrid] 与刷实体。
+func New() *Room {
 	r := &Room{
 		id:    GetManager().NextID(),
 		tps:   60,
 		phase: PhaseLobby,
 		world: ecs.NewWorld(100),
-		grid:  grid,
 	}
-	r.world.SetContext(r.world)
+	r.world.SetContext(r)
 	component.Register(r.world)
-	//  添加怪物
-	for _, monsterId := range desc.Monster {
-		e, _ := entity_factory.CreateByID(r.World(), monsterId)
-		cellX, cellZ, _ := grid.FirstFreeCellDesc()
-		_ = grid.AddUnit(uint64(e), cellX, cellZ)
-		r.world.AddComponent(e, &component.Transform2D{
-			X: cellX,
-			Y: cellZ,
-		})
-	}
-
-	//  添加玩家
-	for _, player := range players {
-		_, _ = entity_factory.CreateByPlayer(r.World(), player)
-		cellX, cellZ, _ := grid.FirstFreeCellDesc()
-		_ = grid.AddUnit(uint64(e), cellX, cellZ)
-		r.world.AddComponent(e, &component.Transform2D{
-			X: cellX,
-			Y: cellZ,
-		})
-	}
-
-	GetManager().Add(r)
-	return r, nil
+	return r
 }
 
 // Room 单局战斗隔离单元：独立 [ecs.World]、阶段字段 [Room.phase]、Clock/Loop。
@@ -84,6 +49,11 @@ func (r *Room) phaseIs(p Phase) bool {
 }
 
 func (r *Room) ID() uint64 { return r.id }
+
+// SetGrid 设置空间网格；传入 [land.Grid]，内部会绑定本房间的 [Room.World]。
+func (r *Room) SetGrid(base *land.Grid) {
+	r.grid = base
+}
 
 func (r *Room) Grid() *land.Grid { return r.grid }
 
@@ -121,8 +91,6 @@ func (r *Room) StartBattle(ctx context.Context) error {
 	r.cancel = cancel
 	loop := r.loop
 	w := r.world
-
-	system.AddSystems(w)
 
 	dt := 1.0 / float64(r.clk.TPS())
 	loop.Add(tick.FuncSubscriber(func(_ *clock.Clock) {

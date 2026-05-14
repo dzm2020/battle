@@ -2,6 +2,8 @@ package utils
 
 import (
 	"battle/ecs"
+	"battle/internal/battle/component"
+	"battle/internal/battle/land"
 	"math"
 )
 
@@ -24,4 +26,12 @@ func DistanceSquaredFromRef(w *ecs.World, ref, e ecs.Entity) float64 {
 	dx := x - rx
 	dy := y - ry
 	return math.Sqrt(dx*dx + dy*dy)
+}
+
+func GetLandFreeCell(grid *land.Grid, camp component.SideType) (cellX, cellZ int, ok bool) {
+	if camp == component.SideTypeRed {
+		return grid.FirstFreeCellAsc()
+	} else {
+		return grid.FirstFreeCellAsc()
+	}
 }

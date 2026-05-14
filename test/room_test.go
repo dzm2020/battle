@@ -8,11 +8,11 @@ import (
 	"testing"
 
 	"battle/ecs"
-	"battle/internal/battle/attributes"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/entity_factory"
+	"battle/internal/battle/pb"
 	"battle/internal/battle/room"
+	"battle/internal/battle/room_builder"
 )
 
 func battleConfigDirForRoom(t *testing.T) string {
@@ -28,12 +28,12 @@ func TestRoom(t *testing.T) {
 	dir := battleConfigDirForRoom(t)
 	config.Load(dir)
 
-	player := &entity_factory.Player{
+	player := &pb.Player{
 		ID: 1,
-		Units: map[uint32]*entity_factory.PlayerUnit{
+		Units: map[uint32]*pb.PlayerUnit{
 			1: {
 				ID: 1,
-				Stats: []attributes.Attribute{
+				Stats: []pb.Attribute{
 					{Type: config.AttrHp, InitValue: 50, MaxValue: 50},
 				},
 				Ability: []int32{1},
@@ -41,7 +41,7 @@ func TestRoom(t *testing.T) {
 		},
 	}
 
-	r, err := room.CreateRoom(1, []*entity_factory.Player{player})
+	r, err := room_builder.CreateRoom(1, &room_builder.Options{Self: []*pb.Player{player}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,5 +73,52 @@ func TestRoom(t *testing.T) {
 
 	if err := r.StartBattle(ctx); !errors.Is(err, room.ErrWrongPhase) {
 		t.Fatalf("重复 StartBattle 应返回 ErrWrongPhase，实际 %v", err)
+	}
+}
+
+func TestCreateRoom_RejectsPVPDungeon(t *testing.T) {
+	dir := battleConfigDirForRoom(t)
+	config.Load(dir)
+
+	_, err := room_builder.CreateRoom(2, &room_builder.Options{Self: []*pb.Player{{ID: 1}}})
+	if !errors.Is(err, room.ErrUseCreatePVPRoom) {
+		t.Fatalf("CreateRoom 打开 PVP 副本应返回 ErrUseCreatePVPRoom，实际 %v", err)
+	}
+}
+
+func TestCreatePVPRoom(t *testing.T) {
+	dir := battleConfigDirForRoom(t)
+	config.Load(dir)
+
+	unitStats := []pb.Attribute{{Type: config.AttrHp, InitValue: 50, MaxValue: 50}}
+	red := &pb.Player{
+		ID: 1,
+		Units: map[uint32]*pb.PlayerUnit{
+			1: {ID: 1, Stats: unitStats, Ability: []int32{1}},
+		},
+	}
+	blue := &pb.Player{
+		ID: 2,
+		Units: map[uint32]*pb.PlayerUnit{
+			1: {ID: 1, Stats: unitStats, Ability: []int32{1}},
+		},
+	}
+
+	r, err := room_builder.CreatePVPRoom(2, []*pb.Player{red}, []*pb.Player{blue})
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := r.World()
+	var nRed, nBlue int
+	ecs.NewQuery[*component.Team](w).ForEach(func(_ ecs.Entity, team *component.Team) {
+		switch team.Side {
+		case component.SideTypeRed:
+			nRed++
+		case component.SideTypeBlue:
+			nBlue++
+		}
+	})
+	if nRed != 1 || nBlue != 1 {
+		t.Fatalf("PVP 双方单位各应带 Team 各 1，实际 red=%d blue=%d", nRed, nBlue)
 	}
 }

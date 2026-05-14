@@ -49,14 +49,10 @@ func buildAttrFromPB(stats []pb.Attribute) map[config.AttributeType]*component.A
 }
 
 func spawnUnitFromPBUnit(w *ecs.World, unit *pb.PlayerUnit, Components ...ecs.Component) (ecs.Entity, error) {
-	e := w.CreateEntity()
-	if err := spawn(w, e, SpawnUnitOptions{
+	return Spawn(w, SpawnUnitOptions{
 		Abilities:  unit.Ability,
 		BuffDefIDs: unit.BuffDefIDs,
 		Components: Components,
 		Attributes: buildAttrFromPB(unit.Stats),
-	}); err != nil {
-		return 0, err
-	}
-	return e, nil
+	})
 }

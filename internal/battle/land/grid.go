@@ -119,6 +119,23 @@ func (g *Grid) RemoveUnit(unit *Unit) {
 	delete(cell.Units, unit.ID)
 }
 
+// RemoveUnitByID 按单位 ID 在网格中查找并移除；未找到则返回 false。
+func (g *Grid) RemoveUnitByID(unitID uint64) bool {
+	if g == nil || unitID == 0 {
+		return false
+	}
+	for cx := 0; cx < g.width; cx++ {
+		for cz := 0; cz < g.height; cz++ {
+			cell := g.cells[cx][cz]
+			if u, ok := cell.Units[unitID]; ok {
+				g.RemoveUnit(u)
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // UpdateUnit 更新坐标；若跨格则迁移。同格内只改坐标。
 func (g *Grid) UpdateUnit(unit *Unit, newCX, newCZ int) {
 	if unit == nil {
