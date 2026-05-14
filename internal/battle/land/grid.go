@@ -2,7 +2,9 @@
 package land
 
 import (
+	"battle/internal/battle/config"
 	"errors"
+	"fmt"
 )
 
 // ErrInvalidGridConfig 边界或 cellSize 非法。
@@ -34,6 +36,14 @@ type Grid struct {
 	height   int
 	minX     float64
 	minZ     float64
+}
+
+func CreateGridByID(mapID int32) (*Grid, error) {
+	mapDesc := config.GetMapConfigByID(mapID)
+	if mapDesc == nil {
+		return nil, fmt.Errorf("map id %v not found", mapID)
+	}
+	return NewSpatialGrid(mapDesc.MinX, mapDesc.MinZ, mapDesc.MaxX, mapDesc.MaxZ, mapDesc.CellSize)
 }
 
 // NewSpatialGrid 创建覆盖 [minX,maxX)×[minZ,maxZ) 的网格；要求 maxX>minX、maxZ>minZ、cellSize>0。

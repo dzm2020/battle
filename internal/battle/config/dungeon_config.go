@@ -3,8 +3,8 @@ package config
 type DungeonType = int32
 
 const (
-	DungeonTypeStandardPVE int32 = iota // 刷配置中的怪 + 玩家单位入场
-	DungeonTypePVP                      // 双阵营玩家对战；
+	DungeonTypePVE int32 = iota // 刷配置中的怪 + 玩家单位入场
+	DungeonTypePVP              // 双阵营玩家对战；
 )
 
 // DungeonConfig 副本 / 关卡配置。

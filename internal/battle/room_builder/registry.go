@@ -2,6 +2,7 @@ package room_builder
 
 import (
 	"battle/internal/battle/config"
+	"battle/internal/battle/land"
 	"battle/internal/battle/room"
 	"errors"
 
@@ -22,7 +23,7 @@ var (
 )
 
 func init() {
-	registerBuilder(config.DungeonTypeStandardPVE, pveBuilder)
+	registerBuilder(config.DungeonTypePVE, pveBuilder)
 	registerBuilder(config.DungeonTypePVP, pvpBuilder)
 }
 
@@ -33,7 +34,7 @@ func registerBuilder(dungeonType config.DungeonType, b builder) {
 	builders.Set(dungeonType, b)
 }
 
-func getBuilderByType(t int32) builder {
+func doBuilder(t int32) builder {
 	if b, ok := builders.Get(t); ok {
 		return b
 	}
@@ -47,14 +48,13 @@ func CreateRoom(dungeonId int32, options *Options) (*room.Room, error) {
 		return nil, ErrNoDungeonConfig
 	}
 
-	grid, err := createLandByID(desc.MapID)
+	grid, err := land.CreateGridByID(desc.MapID)
 	if err != nil {
 		return nil, err
 	}
 	r := room.New()
 	r.SetGrid(grid)
-
-	if err = getBuilderByType(desc.Type)(r, desc, options); err != nil {
+	if err = doBuilder(desc.Type)(r, desc, options); err != nil {
 		return nil, err
 	}
 	room.GetManager().Add(r)
