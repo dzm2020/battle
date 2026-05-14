@@ -29,9 +29,8 @@ func DistanceSquaredFromRef(w *ecs.World, ref, e ecs.Entity) float64 {
 }
 
 func GetLandFreeCell(grid *land.Grid, camp component.SideType) (cellX, cellZ int, ok bool) {
-	if camp == component.SideTypeRed {
-		return grid.FirstFreeCellAsc()
-	} else {
-		return grid.FirstFreeCellAsc()
+	if grid == nil {
+		return 0, 0, false
 	}
+	return grid.PickFreeCell(camp == component.SideTypeRed)
 }

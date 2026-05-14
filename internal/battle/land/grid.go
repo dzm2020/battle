@@ -272,3 +272,14 @@ func (g *Grid) FirstFreeCellDesc() (cellX, cellZ int, ok bool) {
 	}
 	return 0, 0, false
 }
+
+// PickFreeCell 返回第一个空闲格：useAsc 为 true 时同 [FirstFreeCellAsc]，否则同 [FirstFreeCellDesc]（常用于红/蓝两侧落点策略）。
+func (g *Grid) PickFreeCell(useAsc bool) (cellX, cellZ int, ok bool) {
+	if g == nil {
+		return 0, 0, false
+	}
+	if useAsc {
+		return g.FirstFreeCellAsc()
+	}
+	return g.FirstFreeCellDesc()
+}

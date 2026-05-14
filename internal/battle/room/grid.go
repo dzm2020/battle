@@ -20,19 +20,21 @@ func NewGrid(w *ecs.World, base *land.Grid) *Grid {
 	return &Grid{Grid: base, world: w}
 }
 
+// FreeCell 按 placementSide 选择扫描顺序，返回第一个空闲格索引（与 [Grid.Add] 规则一致）。
+func (g *Grid) FreeCell(placementSide component.SideType) (cellX, cellZ int, ok bool) {
+	if g == nil || g.Grid == nil {
+		return 0, 0, false
+	}
+	return g.PickFreeCell(placementSide == component.SideTypeRed)
+}
+
 // Add 在网格上为实体占第一个空闲格并写入 [component.Transform2D]。
 func (g *Grid) Add(e ecs.Entity, placementSide component.SideType) error {
 	if g == nil || g.Grid == nil || g.world == nil {
 		return ErrNoSpatialGrid
 	}
 	w := g.world
-	var cellX, cellZ int
-	var ok bool
-	if placementSide == component.SideTypeRed {
-		cellX, cellZ, ok = g.FirstFreeCellAsc()
-	} else {
-		cellX, cellZ, ok = g.FirstFreeCellDesc()
-	}
+	cellX, cellZ, ok := g.FreeCell(placementSide)
 	if !ok {
 		return ErrGridFull
 	}
