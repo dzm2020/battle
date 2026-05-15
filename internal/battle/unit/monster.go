@@ -1,4 +1,4 @@
-package entity_factory
+package unit
 
 import (
 	"battle/ecs"
@@ -52,7 +52,7 @@ func defaultBuilder(w *ecs.World, desc *config.UnitConfig, components ...ecs.Com
 }
 
 func spawnUnitFromConfigDesc(w *ecs.World, desc *config.UnitConfig, Components ...ecs.Component) (ecs.Entity, error) {
-	return Spawn(w, SpawnUnitOptions{
+	return Spawn(w, SpawnUnitSpec{
 		Abilities:  desc.Ability,
 		BuffDefIDs: desc.BuffDefIDs,
 		Components: Components,

@@ -1,4 +1,4 @@
-package entity_factory
+package unit
 
 import (
 	"battle/ecs"

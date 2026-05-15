@@ -1,28 +1,74 @@
 package room
 
 import (
+	"battle/internal/battle/config"
+	"battle/internal/battle/pb"
+	"battle/internal/battle/room/room_builder"
 	"context"
+	"errors"
 	"sync"
 
 	"battle/ecs"
-	"battle/internal/battle/clock"
 	"battle/internal/battle/component"
 	"battle/internal/battle/land"
 	"battle/internal/battle/tick"
 )
 
-// New 分配房间 id、创建 ECS 世界并完成 [component.Register]；尚未装配地图与单位。
-// 由 [battle/internal/battle/room_builder] 在创建流程中调用后再 [SetGrid] 与刷实体。
-func New() *Room {
+// Phase 房间当前阶段（仅服务端权威）；由 [Room] 在各 API 内直接维护 [Room.phase] 字段。
+type Phase int8
+
+const (
+	PhaseLobby     Phase = iota // 等待加入 / 准备
+	PhasePreBattle              // 已开始开战流程，禁止再 Join（防止与 InitBattle 交错）
+	PhaseFighting               // 战斗循环运行中
+	PhaseSettled                // 已结算，等待销毁或复盘
+	PhaseClosed                 // 已关闭，不可再操作
+)
+
+var (
+	ErrNoDungeonConfig = errors.New("no dungeon config")
+	ErrNoMapConfig     = errors.New("no map config")
+)
+
+// CreateRoom 根据 dungeonId 加载副本配置，并按 [config.DungeonConfig.Type] 选择已注册的装配逻辑创建房间。
+func CreateRoom(dungeonId int32, options *room_builder.Options) (*Room, error) {
+	desc := config.GetDungeonConfigByID(dungeonId)
+	if desc == nil {
+		return nil, ErrNoDungeonConfig
+	}
+
+	grid, err := land.CreateGridByID(desc.MapID)
+	if err != nil {
+		return nil, err
+	}
+
 	r := &Room{
 		id:    GetManager().NextID(),
 		tps:   60,
 		phase: PhaseLobby,
 		world: ecs.NewWorld(100),
+		grid:  grid,
 	}
-	r.world.SetContext(r)
+
+	GetManager().Add(r)
+
 	component.Register(r.world)
-	return r
+	r.SetGrid(grid)
+	//  构建房间
+	if err = room_builder.Build(desc.Type, &room_builder.Spec{
+		World: r.world,
+		Desc:  desc,
+		Self:  options.Self,
+		Enemy: options.Enemy,
+	}); err != nil {
+		return nil, err
+	}
+
+	if r.StartBattle(context.Background()) != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
 
 // Room 单局战斗隔离单元：独立 [ecs.World]、阶段字段 [Room.phase]、Clock/Loop。
@@ -37,7 +83,6 @@ type Room struct {
 	// ecs系统
 	world *ecs.World
 	// 逻辑帧驱动
-	clk    *clock.Clock
 	loop   *tick.Loop
 	cancel context.CancelFunc
 	runWG  sync.WaitGroup
@@ -53,6 +98,9 @@ func (r *Room) ID() uint64 { return r.id }
 // SetGrid 设置空间网格；传入 [land.Grid]，内部会绑定本房间的 [Room.World]。
 func (r *Room) SetGrid(base *land.Grid) {
 	r.grid = base
+	if r.world != nil {
+		component.InitResource(r.world, base)
+	}
 }
 
 func (r *Room) Grid() *land.Grid { return r.grid }
@@ -68,9 +116,6 @@ func (r *Room) World() *ecs.World {
 
 // StartBattle 注册战斗管线、挂载 tick→World.Update 并启动独立循环协程；ctx 用于上层整体关服/撤房时取消。
 func (r *Room) StartBattle(ctx context.Context) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	if r.phaseIs(PhaseClosed) {
 		return ErrRoomClosed
 	}
@@ -85,15 +130,15 @@ func (r *Room) StartBattle(ctx context.Context) error {
 
 	r.setPhase(PhasePreBattle)
 
-	r.clk = clock.New(r.tps)
-	r.loop = tick.NewLoop(r.clk)
+	r.loop = tick.NewLoop(tick.New(r.tps))
+
 	loopCtx, cancel := context.WithCancel(ctx)
 	r.cancel = cancel
 	loop := r.loop
 	w := r.world
 
-	dt := 1.0 / float64(r.clk.TPS())
-	loop.Add(tick.FuncSubscriber(func(_ *clock.Clock) {
+	dt := 1.0 / float64(loop.Clock().TPS())
+	loop.Add(tick.FuncSubscriber(func(_ *tick.Clock) {
 		w.Update(dt)
 	}))
 
@@ -129,7 +174,6 @@ func (r *Room) destroy() {
 	r.setPhase(PhaseClosed)
 	r.cancel = nil
 	r.loop = nil
-	r.clk = nil
 }
 
 // Loop 返回当前战斗循环（仅 Fighting 阶段有效；单测可用 [tick.Loop.Step]）。

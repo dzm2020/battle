@@ -4,9 +4,9 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/entity_factory"
 	"battle/internal/battle/pb"
 	"battle/internal/battle/room"
+	"battle/internal/battle/unit"
 )
 
 // spawnMonstersForDesc 按副本配置刷怪；无空位时跳过该只怪（与原先 pve 循环 continue 一致）。
@@ -32,7 +32,7 @@ func spawnMonsterAtFreeCell(r *room.Room, monsterID int32, side component.SideTy
 		&component.Team{Side: side},
 		&component.Transform2D{X: cellX, Y: cellZ},
 	}
-	e, err := entity_factory.CreateByID(r.World(), monsterID, components...)
+	e, err := unit.CreateByID(r.World(), monsterID, components...)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func spawnPlayersOnGridWithTeam(r *room.Room, player *pb.Player, side component.
 			&component.Team{Side: side, Entity: teamEntity},
 			&component.Transform2D{X: cellX, Y: cellZ},
 		}
-		e, err := entity_factory.CreateByUnit(w, unit, components...)
+		e, err := unit.CreateByUnit(w, unit, components...)
 		if err != nil {
 			return err
 		}

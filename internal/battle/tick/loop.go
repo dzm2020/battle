@@ -4,23 +4,21 @@ import (
 	"context"
 	"sync"
 	"time"
-
-	"battle/internal/battle/clock"
 )
 
 // Loop 固定帧战斗主循环：驱动 Clock Advance，并按注册顺序通知订阅者。
 // 不负责具体战斗逻辑，与 timer / entity 等解耦。
 type Loop struct {
-	clk  *clock.Clock
+	clk  *Clock
 	mu   sync.RWMutex
 	subs []Subscriber
 }
 
-func NewLoop(clk *clock.Clock) *Loop {
+func NewLoop(clk *Clock) *Loop {
 	return &Loop{clk: clk}
 }
 
-func (l *Loop) Clock() *clock.Clock { return l.clk }
+func (l *Loop) Clock() *Clock { return l.clk }
 
 // Add 追加订阅者；应在 Run/Step 前完成注册。
 func (l *Loop) Add(s Subscriber) {

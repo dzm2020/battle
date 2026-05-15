@@ -1,4 +1,4 @@
-package clock
+package tick
 
 import "time"
 
@@ -22,7 +22,7 @@ func (c *Clock) TPS() int { return c.tps }
 // Frame 当前逻辑帧，从 1 开始计数（第 1 次 Advance 后为 1）。
 func (c *Clock) Frame() uint64 { return c.frame }
 
-// Advance 推进一帧；仅应由 tick.Loop 或单测 Step 调用，避免多处自增。
+// Advance 推进一帧；仅应由 Loop 或单测 Step 调用，避免多处自增。
 func (c *Clock) Advance() { c.frame++ }
 
 // LogicalMs 已经运行了多久

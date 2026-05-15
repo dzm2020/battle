@@ -1,4 +1,4 @@
-package entity_factory
+package unit
 
 import (
 	"battle/ecs"
@@ -10,8 +10,8 @@ import (
 	"fmt"
 )
 
-// SpawnUnitOptions 属性组件就绪后要挂载的技能、Buff 与额外 ECS 组件；后续可在此增加字段（如被动 id、阵营修正等）。
-type SpawnUnitOptions struct {
+// SpawnUnitSpec 属性组件就绪后要挂载的技能、Buff 与额外 ECS 组件；后续可在此增加字段（如被动 id、阵营修正等）。
+type SpawnUnitSpec struct {
 	Attributes map[config.AttributeType]*component.Attribute
 	Abilities  []int32
 	BuffDefIDs []uint32
@@ -19,7 +19,7 @@ type SpawnUnitOptions struct {
 	Components []ecs.Component
 }
 
-func Spawn(w *ecs.World, option SpawnUnitOptions) (ecs.Entity, error) {
+func Spawn(w *ecs.World, option SpawnUnitSpec) (ecs.Entity, error) {
 	e := w.CreateEntity()
 	attrsComponent := ecs.EnsureGetComponent[*component.Attributes](w, e)
 	attrsComponent.Base = option.Attributes
@@ -49,7 +49,7 @@ func buildAttrFromPB(stats []pb.Attribute) map[config.AttributeType]*component.A
 }
 
 func spawnUnitFromPBUnit(w *ecs.World, unit *pb.PlayerUnit, Components ...ecs.Component) (ecs.Entity, error) {
-	return Spawn(w, SpawnUnitOptions{
+	return Spawn(w, SpawnUnitSpec{
 		Abilities:  unit.Ability,
 		BuffDefIDs: unit.BuffDefIDs,
 		Components: Components,

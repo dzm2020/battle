@@ -1,23 +1,26 @@
 package ecs
 
+import "reflect"
+
 // ========== 世界 ==========
 
 // World ECS 世界
 type World struct {
-	registry *ComponentRegistry
-	entities map[Entity]*EntityComponents
-	systems  []System
-	events   *eventBus
-	ctx      any
+	registry  *ComponentRegistry
+	entities  map[Entity]*EntityComponents
+	systems   []System
+	events    *eventBus
+	resources map[reflect.Type]any // Resource 容器
 }
 
 // NewWorld 创建世界；lifecycle 用于在实体/组件生命周期填充 [Event.Payload]（可为零值，此时 Payload 恒为 nil）。
 func NewWorld(initEntityNum int32) *World {
 	return &World{
-		registry: NewComponentRegistry(),
-		entities: make(map[Entity]*EntityComponents, initEntityNum),
-		systems:  make([]System, 0, 16),
-		events:   newEventBus(),
+		registry:  NewComponentRegistry(),
+		entities:  make(map[Entity]*EntityComponents, initEntityNum),
+		systems:   make([]System, 0, 16),
+		resources: make(map[reflect.Type]any),
+		events:    newEventBus(),
 	}
 }
 
@@ -150,11 +153,4 @@ func (w *World) Update(dt float64) {
 // EmitEvent 派发业务自定义事件（与实体生命周期事件共用同一套订阅）。
 func (w *World) EmitEvent(e Event) {
 	w.events.emit(e)
-}
-
-func (w *World) SetContext(ctx any) {
-	w.ctx = ctx
-}
-func (w *World) GetContext() any {
-	return w.ctx
 }

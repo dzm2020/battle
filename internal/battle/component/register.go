@@ -1,6 +1,9 @@
 package component
 
-import "battle/ecs"
+import (
+	"battle/ecs"
+	"battle/internal/battle/land"
+)
 
 func Register(w *ecs.World) {
 	RegisterCombatTypes(w.Registry())
@@ -22,10 +25,19 @@ func RegisterCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&CastIntent{})
 	r.Register(&SkillCastState{})
 	r.Register(&PendingHeal{})
+	r.Register(&SpawnRequestQueue{})
 
 }
 
 // RegisterCombatTypesWorld 向战斗 [ecs.World] 注册全部战斗组件类型 ID（测试与房间初始化用）。
 func RegisterCombatTypesWorld(w *ecs.World) {
 	RegisterCombatTypes(w.Registry())
+}
+
+// InitResource 注入局内单例资源（如空间网格）；开房或 [room.Room.SetGrid] 时调用。
+func InitResource(w *ecs.World, grid *land.Grid) {
+	if w == nil || grid == nil {
+		return
+	}
+	ecs.InsertResource(w, grid)
 }

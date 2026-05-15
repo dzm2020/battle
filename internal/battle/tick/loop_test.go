@@ -1,17 +1,13 @@
 package tick
 
-import (
-	"testing"
-
-	"battle/internal/battle/clock"
-)
+import "testing"
 
 func TestLoop_StepOrder(t *testing.T) {
-	clk := clock.New(60)
+	clk := New(60)
 	loop := NewLoop(clk)
 	var seq []int
-	loop.Add(FuncSubscriber(func(c *clock.Clock) { seq = append(seq, 1) }))
-	loop.Add(FuncSubscriber(func(c *clock.Clock) { seq = append(seq, 2) }))
+	loop.Add(FuncSubscriber(func(c *Clock) { seq = append(seq, 1) }))
+	loop.Add(FuncSubscriber(func(c *Clock) { seq = append(seq, 2) }))
 	loop.Step()
 	if clk.Frame() != 1 {
 		t.Fatalf("frame %d", clk.Frame())

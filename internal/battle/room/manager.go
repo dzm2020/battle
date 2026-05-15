@@ -14,13 +14,13 @@ func GetManager() *Manager {
 // Manager 全局房间表：多房间隔离；与单个 Room 的内锁分层，避免把整张 map 锁进 Room 逻辑。
 type Manager struct {
 	mu    sync.RWMutex
-	rooms map[uint64]IRoom
+	rooms map[uint64]*Room
 	id    atomic.Uint64
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		rooms: make(map[uint64]IRoom),
+		rooms: make(map[uint64]*Room),
 	}
 }
 func (m *Manager) NextID() uint64 {
@@ -28,7 +28,7 @@ func (m *Manager) NextID() uint64 {
 	return roomId
 }
 
-func (m *Manager) Add(r IRoom) {
+func (m *Manager) Add(r *Room) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -36,7 +36,7 @@ func (m *Manager) Add(r IRoom) {
 }
 
 // Get 读侧查找。
-func (m *Manager) Get(id uint64) (IRoom, bool) {
+func (m *Manager) Get(id uint64) (*Room, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	r, ok := m.rooms[id]
