@@ -3,6 +3,7 @@ package room
 import (
 	"battle/internal/battle/config"
 	"battle/internal/battle/factory/room_factory"
+	"battle/internal/battle/pb"
 	"context"
 	"errors"
 	"sync"
@@ -10,7 +11,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/land"
-	"battle/internal/battle/runtime"
+	"battle/internal/battle/system/runtime"
 	"battle/internal/battle/tick"
 )
 
@@ -45,6 +46,9 @@ func CreateRoom(dungeonId int32, spec *room_factory.Spec) (*Room, error) {
 	if desc == nil {
 		return nil, ErrNoDungeonConfig
 	}
+	if desc.Type == config.DungeonTypePVP && (spec == nil || spec.Self == nil || spec.Enemy == nil) {
+		return nil, ErrUseCreatePVPRoom
+	}
 
 	grid, err := land.CreateGridByID(desc.MapID)
 	if err != nil {
@@ -62,11 +66,16 @@ func CreateRoom(dungeonId int32, spec *room_factory.Spec) (*Room, error) {
 		return nil, err
 	}
 
-	if r.StartBattle(context.Background()) != nil {
+	if err = r.StartBattle(context.Background()); err != nil {
 		return nil, err
 	}
 
 	return r, nil
+}
+
+// CreatePVPRoom 创建 PVP 房间（须同时提供 Self 与 Enemy）。
+func CreatePVPRoom(dungeonId int32, self, enemy *pb.Player) (*Room, error) {
+	return CreateRoom(dungeonId, &room_factory.Spec{Self: self, Enemy: enemy})
 }
 
 // Room 单局战斗隔离单元：独立 [ecs.World]、阶段字段 [Room.phase]、Clock/Loop。

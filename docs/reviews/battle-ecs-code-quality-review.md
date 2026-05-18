@@ -1,169 +1,174 @@
-# battleDemo 代码质量与 ECS 规范评价
+# battleDemo 代码质量与 ECS 规范评价（复审）
 
 | 项 | 说明 |
 |----|------|
 | **范围** | `battle/ecs`、`internal/battle/` 及配置、房间、测试 |
-| **评价日期** | 2026-05-18 |
-| **相关文档** | [STRUCTURE.md](../STRUCTURE.md)、[internal-code-quality-review.md](../internal-code-quality-review.md)、[guides/optimization-recommendations.md](../guides/optimization-recommendations.md) |
+| **评价日期** | 2026-05-18（复审，相对首轮评审已有多项架构收敛） |
+| **相关文档** | [STRUCTURE.md](../STRUCTURE.md)、[skill-design.md](../skill-design.md)、[buff-and-skill-systems.md](../buff-and-skill-systems.md) |
 
 ---
 
 ## 1. 总评（一句话）
 
-**方向对、分层清楚，战斗管线有设计感**；当前仍是 **可演进的战斗内核 Demo**，工程上 **尚不能稳定全量构建**。在 ECS 上属于 **「广义 ECS + Go 指针组件」的混合实现**，而非高性能、数据导向的狭义 ECS。
+**战斗内核方向正确，ECS 边界收敛已可验证**：纯数据组件、`BattleContext`、刷怪队列、`test/` 与 `room_factory` 已对齐。当前 **`go build ./internal/battle/...` 通过**，**`go test ./ecs/... ./test/... ./internal/battle/...` 通过**。整体仍是 **Demo 级工程**：`abandoned/` 拖累全仓库 `go build ./...`，施法目标仍以 `TargetSelect` 表为准（`SkillCastState.TargetEntity` 未参与效果选取），Query 仍为全表扫描。
+
+**ECS 定位**：符合 **广义 ECS**（E/C/S + 帧驱动 System + 命令缓冲）；不符合 **狭义高性能 ECS**（无 Archetype、全表扫描 Query）。
 
 ---
 
-## 2. 做得好的地方
+## 2. 自首轮评审以来的改进（已落地）
 
-| 维度 | 评价 |
-|------|------|
-| **三层分离** | `ecs/`（框架）、`component/`（数据）、`system/`（逻辑）、`skill` / `buff` / `target_selector` / `land` / `room` 边界可读，与 [STRUCTURE.md](../STRUCTURE.md) 目标一致。 |
-| **系统顺序显式化** | `system/register.go` 固定帧内顺序：刷怪 → Buff → 技能冷却/校验/阶段 → 伤害 → 治疗 → 扣血 → 死亡 → 结束。 |
-| **数据驱动** | 技能效果、Buff、选目标走配置表 + registry，扩展玩法少改核心循环。 |
-| **命令缓冲式管线** | `DamageQueue` → `ResolvedDamage`、`PendingHeal` 等「写入缓冲 → 专用 System 消费」，符合常见 ECS 战斗写法。 |
-| **房间隔离** | 每局独立 `ecs.World`、`Room` 阶段与 `tick` 循环，与网关解耦思路正确。 |
-| **查询 API** | 泛型 `Query` / `Query2`…，`Initialize` 建 Query、`Update` 中 `ForEach`，战斗系统风格统一。 |
-| **进房装配演进** | `room_builder` 已改为 `Spec` 驱动；刷怪/玩家通过 `SpawnRequestQueue` 入队，由 `SpawnSystem` 统一创建，比散落在 builder 里直接 `CreateEntity` 更贴近 ECS 管线。 |
+| 项 | 状态 |
+|----|------|
+| 组件带行为（`Attributes.Add`、`DamageQueue.Add`） | 已改为 `attr_ops` / `DamageQueueAppend` 包级函数，组件仅数据 |
+| HP 双轨（`Attributes` + `Health`） | 已移除 `Health` 组件，`AttrHp` 为唯一生命源 |
+| 施法双轨（`CastIntent` + `SkillCastRequest`） | 仅保留 `SkillCastRequest` + `RequestSkillCast` |
+| 出生装配散落在 `unit` | 已迁至 `factory/entity_factory`，职责注释清晰 |
+| Resource 分散注入 | 已统一为 `system/runtime.BattleContext`（`Grid` + `SpawnQueue`） |
+| 进房刷单位 | `room_factory` 入队 → `SpawnSystem` 消费，符合 command-buffer 模式 |
 
 ---
 
-## 3. 是否符合 ECS 规范？
+## 3. 当前架构快照
 
-没有全球统一的「ECS 认证」，可按常见 checklist 判断。
+```text
+battle/ecs/                    # 通用 World、Query、Resource、事件
+internal/battle/
+├── component/                 # 纯组件 + attr_ops / skill_cast_ops / damage 访问函数
+├── config/                    # JSON 表
+├── factory/
+│   ├── entity_factory/      # 出生装配（唯一允许初始 skill/buff 挂载处）
+│   └── room_factory/          # 副本类型、入队 SpawnRequest（原 room_builder）
+├── land/                      # 空间网格
+├── room/                      # 房间生命周期、CreateRoom、tick
+├── system/
+│   ├── runtime/               # BattleContext 注入/访问
+│   ├── skill/ buff/ target_selector/  # 战斗子域（部分已迁入 system 树）
+│   └── system_*.go            # 帧管线
+├── pb/ utils/ event/ tick/
+```
 
-### 3.1 符合或基本符合
+**开房与战斗帧（推荐理解）**
 
-1. **Entity 仅为 ID**（`ecs.Entity`），业务不挂在 Entity 结构体方法上。
-2. **逻辑在 System**，经 Query 或 Resource 驱动帧更新。
-3. **组合优于继承**：单位由 `Attributes`、`SkillSet`、`BuffList`、`Team` 等组件拼装。
-4. **组件类型注册表**：`component.InitCombatTypes` 集中注册战斗组件 ID。
-5. **单 World、单线程 tick**：系统顺序可控，适合帧同步/回合战斗。
+```text
+CreateRoom → component.Init → runtime.Install(BattleContext)
+          → room_factory.Create（AddCombatSystems + EnqueueSpawn）
+          → StartBattle（tick → World.Update）
+每帧：SpawnSystem → Buff → 技能 CD/校验/阶段 → 伤/疗/血/死/结束
+```
 
-### 3.2 不符合或仅「形似 ECS」
+**房间创建不是 System**：开房属于局生命周期；单位生成在帧内由 `SpawnSystem` 完成——符合 ECS 常见分工。
 
-| 问题 | 说明 |
+---
+
+## 4. 是否符合 ECS 规范？
+
+### 4.1 符合或基本符合
+
+| 要点 | 说明 |
 |------|------|
-| **非数据导向存储** | 每实体 `map[uint8]Component`；Query **每帧遍历全部实体** O(N)，无 Archetype / SoA / Chunk。 |
-| **组件带行为** | 如 `Attributes.Add/Set`、`DamageQueue.Add`——偏 **富领域对象**，严格 ECS 倾向纯数据 + System 改值。 |
-| **镜像状态** | `Attributes` 内 HP 与 `Health` 组件需 `HealthSystem` 同步，**单一事实来源**不清晰。 |
-| ~~施法意图双轨~~ | 已收敛：**仅 `SkillCastRequest`**（`RequestSkillCast` / `SetSkillCastRequest`）；`CastIntent` 已移除。 |
-| ~~工厂在 System 外~~ | 已迁入 **`entity_factory`**：出生装配唯一入口；`unit` 包仅保留废弃别名。运行时 skill/buff 仍走原包与 System。 |
-| **Resource 与 Component 混用** | `SpawnRequestQueue` 实现 `Component()` 接口，实际却作为 **World Resource** 单例使用；`SpawnSystem` 不通过 Query 消费，易造成概念混淆。 |
-| **掩码上限** | `EntityComponents.mask` 为 `uint64`，`compID` 可到 255；**组件种类 >64 时 mask 失效**。 |
-| **`AddComponent` 静默失败** | 同类型组件已存在时直接 return，不替换、不报错。 |
-| ~~全局 Resource 未成体系~~ | 已统一为 **`runtime.BattleContext`**（`Grid` + `SpawnQueue`），经 `runtime.Install` 注入。 |
+| Entity 仅为 ID | `ecs.Entity`，无业务方法实体类 |
+| System 驱动 | 伤害/治疗/Buff/技能/刷怪等均在 `Update` + Query 中处理 |
+| 组合式能力 | `SkillSet`、`BuffList`、`Team`、`Attributes` 等拼装单位 |
+| 命令缓冲 | `DamageQueue`→`ResolvedDamage`、`PendingHeal`、`SpawnRequestQueue` |
+| 注册与顺序 | `component.InitCombatTypes` + `register.go` 显式系统顺序 |
+| 单 World 隔离 | 每局 `Room` 独立 `ecs.World` |
+| 玩法写、系统读 | 施法：`RequestSkillCast`；刷怪：`runtime.EnqueueSpawn` |
 
-### 3.3 结论
+### 4.2 仍不符合或需注意
+
+| 问题 | 严重度 | 说明 |
+|------|--------|------|
+| 存储模型 | 中 | 每实体 `map[uint8]Component`，Query 全表 O(N)，无 Archetype/SoA |
+| `mask uint64` | 低～中 | `compID` 可达 255，**>64 种组件时位掩码失效** |
+| `AddComponent` 静默 | 中 | 已有同类型组件时直接 return，难调试 |
+| 属性写在包级函数 | 低 | 严格 ECS 希望 System 内改值；当前 `attr_ops` 是务实折中 |
+| `runtime` 包路径 | 低 | 实现在 `system/runtime`，import 易写错（复审前曾导致无法编译） |
+| 目录迁移中 | 低～中 | `test/` 已用 `room` + `room_factory`；`abandoned/room_builder` 仍无法编译；README 未完全同步 |
+| 施法目标 | 中 | 校验写入 `SkillCastState.TargetEntity`，`ApplyEffects` 仅用 `target_selector.Select`，与玩家点选目标可能不一致 |
+
+### 4.3 结论
 
 | 标准 | 结论 |
 |------|------|
-| **广义 ECS**（E/C/S 分离 + System 驱动更新） | **基本符合**，可称为 ECS 风格项目。 |
-| **狭义 ECS**（纯数据组件、Archetype、高性能迭代，如 DOTS/EnTT） | **不符合**，为 **Go 指针组件 + 每实体 map 的轻量 OOP-ECS 混合**。 |
-
-**定位**：适合中小规模、表驱动的回合/帧同步战斗 Demo；不宜按 DOTS/EnTT 标准期待性能与纯度。
+| **广义 ECS** | **符合**，可作为帧同步战斗内核继续演进 |
+| **狭义 ECS（DOTS/EnTT 类）** | **不符合** |
 
 ---
 
-## 4. 代码质量（工程维度）
+## 5. 代码质量（工程维度）
 
-### 4.1 优点
+### 5.1 优点
 
-- 包划分与中文注释利于协作。
-- 战斗链路（Buff → 伤害队列 → 结算 → 治疗 → 扣血 → 死亡）有清晰 **管线意识**。
-- `land` 具备单元测试；JSON 配表迭代成本低。
-- `room` / `room_builder` 相对早期版本，`Spec` 与 `SpawnSystem` 方向在变好。
+- **管线清晰**：系统顺序有注释，伤害链、治疗、死亡、战斗结束分工明确。
+- **表驱动扩展**：skill/buff 效果 registry、target_selector 过滤器可配置。
+- **边界文档化**：`entity_factory`、`BattleContext`、`SkillCastRequest` 包注释说明职责。
+- **`land` 有单测**；`component`、`config` 等子包可独立编译。
 
-### 4.2 主要短板（按优先级）
+### 5.2 主要问题
 
 | 优先级 | 问题 |
 |--------|------|
-| **P0** | **`internal/battle/utils` 与 `component` 类型不一致**（`Transform2D` 为 `int`，工具仍按 `float64`；`Team.Side` 为 `SideType` 字符串，工具仍返回 `uint8`），导致 **`go build ./internal/battle/...` 失败**。 |
-| **P0** | **`ecs` 包测试与 API 脱节**：`ecs_test.go` / `events_test.go` 引用已删除的 `NewWorldWithStdPayload` 等，`go test ./ecs/...` 无法通过。 |
-| **P1** | **`SpawnRequest` 与 `SpawnSystem` 字段不一致**：`system_spawn.go` 使用 `req.TeamEntity`，`spawn_request.go` 结构体未声明该字段（修通 `utils` 后仍会编译失败）。 |
-| **P1** | **`SpawnRequestQueue` 未在 `InitCombatTypes` 注册**，却实现 `Component()`；仅作 Resource 时应去掉组件接口或改名（如 `SpawnCommandBuffer`）。 |
-| **P1** | **`Attributes` 键类型混用**：`Init` 用 `map[string]`，`SetRange` 用 `map[config.AttributeType]`，易埋运行时 bug。 |
-| **P2** | **文档与实现分叉**：`docs/phase5-battle.md` 等历史文档中的类型/系统名可能与现状不一致。 |
-| **P2** | **`test/` 大包集成测试**：单文件损坏易导致整包无法 `go test`。 |
-| **P2** | **`abandoned/room_builder`** 与正式目录并存，增加阅读成本。 |
+| **P1** | `go build ./...` 因 `abandoned/room_builder` 失败；应删除、移出模块或加 `//go:build ignore` |
+| **P1** | 技能效果未消费 `SkillCastState.TargetEntity`；表 `target_select_id` 与点选目标易漂移 |
+| **P2** | `CreateRoom` → `room_factory.Create` → `StartBattle`；测试需 `World.Update` 才刷怪，文档需写清 |
+| **P2** | `config.Load` panic、表间引用校验不足（见既有优化清单） |
+| **P2** | `internal/battle` 内 System 级单测仍偏少（集成测在 `test/`） |
 
-### 4.3 构建验证（评价日实测）
+### 5.3 构建与测试验证（2026-05-18 本轮）
 
 ```text
-go build ./ecs/...              → 可通过（库本体）
-go test ./ecs/...               → 失败（测试引用已移除 API）
-go build ./internal/battle/...  → 失败（utils 类型错误）
-go build ./internal/battle/component/...  → 通过
-go build ./internal/battle/land/...      → 通过
+go build ./internal/battle/...              → 通过
+go test ./ecs/... ./test/... ./internal/battle/... → 通过
+go build ./...                              → 失败（仅 abandoned/room_builder）
 ```
 
-说明：**子包可编，依赖 `utils` 的 `system` 及全量 battle 尚不可用**；缺少 CI 时重构易回 regress。
+**本轮测试/战斗修复（摘要）**
+
+| 项 | 处理 |
+|----|------|
+| `ecs` 单测 | 对齐 `NewWorld`、事件 Kind/Payload |
+| `test/` | `room` + `room_factory`；`Skill.json` 消耗类型字符串化；`SkillEffect` 敌方选目标 `target_select_id: 10` |
+| `DamageSystem` | 命中后基础伤害取 `RawDamage`；未配命中/闪避视为必中 |
 
 ---
 
-## 5. 当前战斗管线（便于对照代码）
+## 6. 主观评分（复审）
 
-`system/register.go` 注册顺序：
-
-```text
-SpawnSystem → BuffSystem → CooldownSystem → CastValidationSystem
-→ CastStateSystem → DamageSystem → HealSystem → HealthSystem
-→ DeathSystem → BattleEndSystem
-```
-
-进房流程（简化）：
-
-```text
-CreateRoom → SetGrid（注入 *land.Grid）→ component.Init
-→ room_builder.Build（入队 SpawnRequest）→ StartBattle → tick 驱动 World.Update
-```
+| 项 | 首轮 | 复审 | 本轮 | 说明 |
+|----|------|------|------|------|
+| 架构清晰度 | 7 | 8 | **8** | factory + runtime + 管线稳定 |
+| ECS 纯度 | 5 | 6.5 | **6.5** | 组件/施法/生命源已收敛；目标选取仍偏表驱动 |
+| 可维护性 | 5 | 6 | **7** | ecs + test 可绿；`abandoned` 仍碍全仓构建 |
+| 可扩展性（玩法） | 7 | 7.5 | **7.5** | 表驱动 + 队列模式 |
+| 生产就绪 | 3 | 4 | **5** | battle 可编可测；CI 建议 `ecs` + `test` + 排除 abandoned |
 
 ---
 
-## 6. 改进建议（路线图摘要）
+## 7. 两个问题的直接回答
 
-| 优先级 | 建议 |
-|--------|------|
-| **P0** | 修复 `utils` 与 `component` 对齐；恢复 `go build ./internal/battle/...` 与 `go test ./ecs/...`。 |
-| **P0** | 补齐 `SpawnRequest.TeamEntity` 或从 `SpawnSystem` 移除对该字段的引用。 |
-| **P1** | 明确 **HP 唯一来源**（`Attributes` 或 `Health` 二选一，另一作只读视图）。 |
-| ~~P1 施法链~~ | 已收敛：`RequestSkillCast` → `CastValidationSystem` → `SkillCastState` → `CastStateSystem`。 |
-| **P1** | 厘清 `SpawnRequestQueue`：**仅 Resource** 或 **挂实体上的 Queue 组件 + Query**，避免双重身份。 |
-| **P2** | Query 按 `compID` 维护实体索引，避免每帧全表扫描。 |
-| **P2** | 限制组件数 ≤64 或扩展 `mask` 实现。 |
-| ~~P3 entity_factory~~ | 已完成；组件纯数据见 `attr_ops` / `DamageQueueAppend` 等。 |
+### 7.1 这份库代码怎么样？
 
-可执行清单见 [guides/optimization-recommendations.md](../guides/optimization-recommendations.md)。
+**作为战斗 Demo / 内核原型：质量明显提升，值得继续投入。** 近期重构解决了评审中的多个「ECS 坏味道」。  
+**作为上线战斗服：** 建议 CI 跑 `go test ./ecs/... ./test/... ./internal/battle/...` 与 `go build ./internal/battle/...`；清理 `abandoned`、让效果尊重点选目标或文档约定「仅表选目标」、并评估 Query 性能上限。
+
+### 7.2 是否符合 ECS 规范？
+
+- **符合广义 ECS**，且比首轮更接近规范实践（单一数据源、单一施法入口、统一 Context、刷怪走 System）。  
+- **不符合狭义高性能 ECS**；若单位规模上千，需做 Query 索引或 Archetype，而非继续堆组件种类。
 
 ---
 
-## 7. 主观评分（供参考）
+## 8. 建议的下一步（按优先级）
 
-| 项 | 分数 | 说明 |
-|----|------|------|
-| 架构清晰度 | 7/10 | 分包、管线、房间模型清晰 |
-| ECS 纯度 | 5/10 | OOP 混合、无 Archetype、Resource/Component 混用 |
-| 可维护性 | 5/10 | 类型漂移、测试脱节、局部 API 不一致 |
-| 可扩展性（玩法） | 7/10 | 表驱动 skill/buff/选目标 |
-| 生产就绪 | 3/10 | 全量构建、CI、配置强校验、观测不足 |
-
----
-
-## 8. 两个问题的直接回答
-
-### 8.1 这份库代码怎么样？
-
-- **作为学习 / 原型 / 战斗 Demo**：结构值得继续投入，域划分和管线设计有参考价值。
-- **作为可上线战斗服内核**：需先完成 **可构建 + 类型收敛 + 单测绿 + room/spawn API 一致**，再谈性能与并发。
-
-### 8.2 是否符合 ECS 规范？
-
-- **符合广义 ECS**（Entity–Component–System 分离，System 驱动帧更新）。
-- **不符合狭义、高性能、数据导向 ECS**（非 SoA、组件含行为、无 Archetype）。
+1. **P1**：删除/隔离 `abandoned/room_builder`，使 `go build ./...` 可过或 CI 显式排除。  
+2. **P1**：`ApplyEffects` 优先 `SkillCastState.TargetEntity`（单目标技能），或与策划约定仅表选目标。  
+3. **P2**：更新 `internal/battle/README.md`（`room_factory`、`system/runtime`、开房后需 `Update` 刷怪）。  
+4. **P2**：为 `CastValidationSystem` / `DamageSystem` 增加包内单测（命中/必中/真伤）。  
+5. **P3**：Query 按 `compID` 索引或文档明确组件数 ≤64。
 
 ---
 
 ## 9. 维护说明
 
-- 架构或 ECS 存储方式有重大变更时，同步更新本文，并在 `docs/adr/` 新增 ADR。
-- 阶段性工程债扫描可另建 `docs/reviews/internal-battle-YYYY-MM.md`，本文件侧重 **ECS 符合度与整体质量**。
+架构变更请同步更新本文与 `docs/adr/`；可执行项见 [guides/optimization-recommendations.md](../guides/optimization-recommendations.md)。

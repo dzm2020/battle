@@ -2,7 +2,7 @@ package component
 
 import "battle/ecs"
 
-// Init 注册战斗组件类型；局内资源请用 [runtime.Install] 注入 [runtime.BattleContext]。
+// Init 注册战斗组件类型；局内资源请用 [system/runtime.Install] 注入 [runtime.BattleContext]。
 func Init(w *ecs.World) {
 	InitCombatTypes(w.Registry())
 }

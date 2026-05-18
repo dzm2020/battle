@@ -3,7 +3,7 @@ package room_factory
 import (
 	"battle/internal/battle/component"
 	"battle/internal/battle/pb"
-	"battle/internal/battle/runtime"
+	"battle/internal/battle/system/runtime"
 	"errors"
 )
 

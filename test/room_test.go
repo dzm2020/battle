@@ -10,9 +10,9 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/factory/room_factory"
 	"battle/internal/battle/pb"
 	"battle/internal/battle/room"
-	"battle/internal/battle/room_builder"
 )
 
 func battleConfigDirForRoom(t *testing.T) string {
@@ -41,15 +41,21 @@ func TestRoom(t *testing.T) {
 		},
 	}
 
-	r, err := room_builder.CreateRoom(1, &room_builder.Options{Self: []*pb.Player{player}})
+	r, err := room.CreateRoom(1, &room_factory.Spec{Self: player})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Phase() != room.PhaseLobby {
-		t.Fatalf("创建后阶段应为 Lobby，实际 %s", r.Phase())
+	if r.Phase() != room.PhaseFighting {
+		t.Fatalf("CreateRoom 已自动开战，期望 Fighting，实际 %v", r.Phase())
+	}
+	if r.Loop() == nil {
+		t.Fatal("Loop 不应为 nil")
 	}
 
 	w := r.World()
+	// 同步推进一帧，确保 SpawnSystem 消费入队请求
+	w.Update(1.0 / 60.0)
+
 	q := ecs.NewQuery[*component.Attributes](w)
 	n := 0
 	q.ForEach(func(_ ecs.Entity, a *component.Attributes) {
@@ -57,36 +63,22 @@ func TestRoom(t *testing.T) {
 			n++
 		}
 	})
-	// 副本配置含 1 只怪物（Unit 模板 id=1）+ 玩家单位各 1 个实体
 	if n != 2 {
 		t.Fatalf("副本内应有 2 个带生命单位（1 玩家 + 1 怪），实际 %d", n)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	if err := r.StartBattle(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if r.Phase() != room.PhaseFighting {
-		t.Fatalf("开战后期望 Fighting，实际 %s", r.Phase())
-	}
-	if r.Loop() == nil {
-		t.Fatal("Loop 不应为 nil")
-	}
-
-	if err := r.StartBattle(ctx); !errors.Is(err, room.ErrWrongPhase) {
+	if err := r.StartBattle(context.Background()); !errors.Is(err, room.ErrWrongPhase) {
 		t.Fatalf("重复 StartBattle 应返回 ErrWrongPhase，实际 %v", err)
 	}
 }
 
-func TestCreateRoom_RejectsPVPDungeon(t *testing.T) {
+func TestCreateRoom_RejectsPVPDungeonWithoutEnemy(t *testing.T) {
 	dir := battleConfigDirForRoom(t)
 	config.Load(dir)
 
-	_, err := room_builder.CreateRoom(2, &room_builder.Options{Self: []*pb.Player{{ID: 1}}})
+	_, err := room.CreateRoom(2, &room_factory.Spec{Self: &pb.Player{ID: 1}})
 	if !errors.Is(err, room.ErrUseCreatePVPRoom) {
-		t.Fatalf("CreateRoom 打开 PVP 副本应返回 ErrUseCreatePVPRoom，实际 %v", err)
+		t.Fatalf("PVP 副本缺少 Enemy 应返回 ErrUseCreatePVPRoom，实际 %v", err)
 	}
 }
 
@@ -108,11 +100,13 @@ func TestCreatePVPRoom(t *testing.T) {
 		},
 	}
 
-	r, err := room_builder.CreatePVPRoom(2, []*pb.Player{red}, []*pb.Player{blue})
+	r, err := room.CreatePVPRoom(2, red, blue)
 	if err != nil {
 		t.Fatal(err)
 	}
 	w := r.World()
+	w.Update(1.0 / 60.0)
+
 	var nRed, nBlue int
 	ecs.NewQuery[*component.Team](w).ForEach(func(_ ecs.Entity, team *component.Team) {
 		switch team.Side {

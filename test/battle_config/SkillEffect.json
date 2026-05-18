@@ -4,13 +4,13 @@
     "effect_type": 1,
     "int_params": [42, 2],
     "string_params": [],
-    "target_select_id": 1
+    "target_select_id": 10
   },
   "20": {
     "effect_id": 20,
     "effect_type": 2,
     "int_params": [900],
     "string_params": [],
-    "target_select_id": 1
+    "target_select_id": 10
   }
 }

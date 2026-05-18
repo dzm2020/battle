@@ -1,7 +1,7 @@
 package test
 
 import (
-	"battle/internal/battle/system/system_skill/skill_effect"
+	"battle/internal/battle/system/skill"
 	"battle/internal/battle/utils"
 	"path/filepath"
 	"runtime"
@@ -83,8 +83,8 @@ func TestSkill(t *testing.T) {
 		system.AddCombatSystems(w)
 		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
 		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
-		if !skill_effect.AddSkill(w, caster, 1) {
-			t.Fatal("AddSkill 失败")
+		if err := skill.Add(w, caster, 1); err != nil {
+			t.Fatal(err)
 		}
 		castSkillRequest(w, caster, 1, target)
 		w.Update(dt)
@@ -99,8 +99,8 @@ func TestSkill(t *testing.T) {
 		system.AddCombatSystems(w)
 		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
 		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
-		if !skill_effect.AddSkill(w, caster, 1) {
-			t.Fatal("AddSkill 失败")
+		if err := skill.Add(w, caster, 1); err != nil {
+			t.Fatal(err)
 		}
 		castSkillRequest(w, caster, 1, target)
 		w.Update(dt)
@@ -119,8 +119,8 @@ func TestSkill(t *testing.T) {
 		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
 		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
 		w.AddComponent(caster, &component.BuffControlState{Flags: component.FlagStunned})
-		if !skill_effect.AddSkill(w, caster, 1) {
-			t.Fatal("AddSkill 失败")
+		if err := skill.Add(w, caster, 1); err != nil {
+			t.Fatal(err)
 		}
 		castSkillRequest(w, caster, 1, target)
 		w.Update(dt)
@@ -136,8 +136,8 @@ func TestSkill(t *testing.T) {
 		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
 		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
 		w.AddComponent(caster, &component.BuffControlState{Flags: component.FlagSilenced})
-		if !skill_effect.AddSkill(w, caster, 1) {
-			t.Fatal("AddSkill 失败")
+		if err := skill.Add(w, caster, 1); err != nil {
+			t.Fatal(err)
 		}
 		castSkillRequest(w, caster, 1, target)
 		w.Update(dt)
@@ -165,8 +165,8 @@ func TestSkill(t *testing.T) {
 		system.AddCombatSystems(w)
 		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 30)
 		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
-		if !skill_effect.AddSkill(w, caster, 3) {
-			t.Fatal("AddSkill 失败")
+		if err := skill.Add(w, caster, 3); err != nil {
+			t.Fatal(err)
 		}
 		castSkillRequest(w, caster, 3, target)
 		w.Update(dt)
@@ -184,8 +184,8 @@ func TestSkill(t *testing.T) {
 		system.AddCombatSystems(w)
 		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
 		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
-		if !skill_effect.AddSkill(w, caster, 3) {
-			t.Fatal("AddSkill 失败")
+		if err := skill.Add(w, caster, 3); err != nil {
+			t.Fatal(err)
 		}
 		castSkillRequest(w, caster, 3, target)
 		w.Update(dt)
@@ -203,8 +203,8 @@ func TestSkill(t *testing.T) {
 		system.AddCombatSystems(w)
 		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
 		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
-		if !skill_effect.AddSkill(w, caster, 2) {
-			t.Fatal("AddSkill 失败")
+		if err := skill.Add(w, caster, 2); err != nil {
+			t.Fatal(err)
 		}
 		castSkillRequest(w, caster, 2, target)
 		w.Update(dt)

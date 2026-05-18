@@ -53,12 +53,22 @@ func (s *DamageSystem) Update(dt float64) {
 }
 
 func (s *DamageSystem) calDamage(w *ecs.World, target ecs.Entity, entry *component.PendingDamage) int {
-	damage := int(0)
+	damage := int(math.Floor(entry.RawDamage))
+	if damage <= 0 {
+		return 0
+	}
 	hit := utils.GetAttributeFinalValue(w, entry.Source, config.AttrHitPermille)
 	dodge := utils.GetAttributeFinalValue(w, target, config.AttrDodgePermille)
 	chance := hit - dodge
+	if chance < 0 {
+		chance = 0
+	}
+	// 未配置命中/闪避时视为必中（测试与缺省单位）
+	if hit == 0 && dodge == 0 {
+		chance = utils.Thousand
+	}
 	//  miss
-	if int(rand.UintN(utils.Thousand)) > chance {
+	if chance < utils.Thousand && int(rand.UintN(utils.Thousand)) > chance {
 		s.world.EmitEvent(ecs.Event{
 			Kind: event.KindDamageMissed,
 			Payload: event.Payload{
@@ -73,7 +83,7 @@ func (s *DamageSystem) calDamage(w *ecs.World, target ecs.Entity, entry *compone
 	if int(rand.UintN(utils.Thousand)) < crit {
 		bonus := utils.GetAttributeFinalValue(w, entry.Source, config.AttrCritDamage)
 		mult := utils.Thousand + bonus
-		damage = int(math.Floor(float64(int(entry.RawDamage)*mult) / utils.Thousand))
+		damage = int(math.Floor(float64(damage*mult) / utils.Thousand))
 	}
 
 	if entry.Type == component.DamageTrue {

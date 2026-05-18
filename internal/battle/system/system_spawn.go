@@ -3,10 +3,10 @@ package system
 import (
 	"battle/ecs"
 	"battle/internal/battle/component"
-	"battle/internal/battle/entity_factory"
+	"battle/internal/battle/factory/entity_factory"
 	"battle/internal/battle/land"
 	"battle/internal/battle/log"
-	"battle/internal/battle/runtime"
+	"battle/internal/battle/system/runtime"
 )
 
 // SpawnSystem 消费 [runtime.BattleContext].SpawnQueue，按请求创建单位并登记到 Grid。
