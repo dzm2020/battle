@@ -5,9 +5,9 @@ import (
 	"battle/internal/battle/component"
 	"battle/internal/battle/resource"
 	"battle/internal/battle/system"
-	"battle/internal/battle/tick"
 	"context"
 	"sync"
+	"time"
 )
 
 // Create 根据 dungeonId 加载副本配置，并按 [config.DungeonConfig.Type] 选择已注册的装配逻辑创建房间。
@@ -39,8 +39,7 @@ func Create(spec *resource.RoomSpec) (*Room, error) {
 type Room struct {
 	id    uint64
 	world *ecs.World
-	// 逻辑帧驱动
-	loop   *tick.Loop
+
 	cancel context.CancelFunc
 	runWG  sync.WaitGroup
 }
@@ -54,31 +53,67 @@ func (r *Room) World() *ecs.World {
 	return r.world
 }
 
-// StartBattle 注册战斗管线、挂载 tick→World.Update 并启动独立循环协程；ctx 用于上层整体关服/撤房时取消。
+// StartBattle 启动战斗循环协程；ctx 用于上层整体关服/撤房时取消。
 func (r *Room) StartBattle(ctx context.Context) error {
 	if r.cancel != nil {
 		return ErrWrongPhase
 	}
 
-	r.loop = tick.NewLoop(tick.New(r.tps))
-
 	loopCtx, cancel := context.WithCancel(ctx)
 	r.cancel = cancel
-	loop := r.loop
-	w := r.world
-
-	dt := 1.0 / float64(loop.Clock().TPS())
-	loop.Add(tick.FuncSubscriber(func(_ *tick.Clock) {
-		w.Update(dt)
-	}))
-
 	r.runWG.Add(1)
 	go func() {
 		defer r.runWG.Done()
-		_ = loop.Run(loopCtx)
+		r.runLoop(loopCtx)
 		r.destroy()
 	}()
 	return nil
+}
+
+func (r *Room) runLoop(ctx context.Context) {
+	tpsRes := ecs.GetResource[resource.TPS](r.world)
+	if tpsRes == nil {
+		return
+	}
+
+	var (
+		ticker     *time.Ticker
+		currentTPS int
+	)
+
+	resetTicker := func(tps *resource.TPS) {
+		effective := tps.EffectiveTPS()
+		if ticker != nil && effective == currentTPS {
+			return
+		}
+		if ticker != nil {
+			ticker.Stop()
+			select {
+			case <-ticker.C:
+			default:
+			}
+		}
+		currentTPS = effective
+		ticker = time.NewTicker(tps.FrameDuration())
+	}
+
+	resetTicker(tpsRes)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			tpsRes = ecs.GetResource[resource.TPS](r.world)
+			if tpsRes == nil {
+				return
+			}
+			resetTicker(tpsRes)
+
+			r.world.Update(tpsRes.DeltaTime())
+			tpsRes.Frame++
+		}
+	}
 }
 
 func (r *Room) destroy() {
@@ -87,12 +122,6 @@ func (r *Room) destroy() {
 		w.RemoveAllEntities()
 	}
 	r.cancel = nil
-	r.loop = nil
-}
-
-// Loop 返回当前战斗循环（仅 Fighting 阶段有效；单测可用 [tick.Loop.Step]）。
-func (r *Room) Loop() *tick.Loop {
-	return r.loop
 }
 
 // Shutdown 强制销毁房间
