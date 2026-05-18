@@ -23,8 +23,8 @@ func DistanceSquaredFromRef(w *ecs.World, ref, e ecs.Entity) float64 {
 	if !ok {
 		return math.MaxFloat64
 	}
-	dx := x - rx
-	dy := y - ry
+	dx := float64(x - rx)
+	dy := float64(y - ry)
 	return math.Sqrt(dx*dx + dy*dy)
 }
 

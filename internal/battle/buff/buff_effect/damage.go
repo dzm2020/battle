@@ -24,7 +24,7 @@ func handleDamage(ctx *Context) error {
 	}
 
 	damageQueue := ecs.EnsureGetComponent[*component.DamageQueue](world, e)
-	damageQueue.Add(&component.PendingDamage{
+	component.DamageQueueAppend(damageQueue, &component.PendingDamage{
 		Source:    buff.Caster,
 		RawDamage: float64(amt),
 		Type:      component.DamageMagic,

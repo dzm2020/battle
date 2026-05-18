@@ -2,7 +2,6 @@ package system
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/system/system_skill"
 )
 
 // AddSystems 注册完整战斗管线（单帧内执行顺序）：
@@ -12,9 +11,9 @@ import (
 func AddSystems(w *ecs.World) {
 	w.AddSystem(&SpawnSystem{})
 	w.AddSystem(&BuffSystem{})
-	w.AddSystem(&skill.CooldownSystem{})
-	w.AddSystem(&skill.CastValidationSystem{})
-	w.AddSystem(&skill.CastStateSystem{})
+	w.AddSystem(&CooldownSystem{})
+	w.AddSystem(&CastValidationSystem{})
+	w.AddSystem(&CastStateSystem{})
 	w.AddSystem(&DamageSystem{})
 	w.AddSystem(&HealSystem{})
 	w.AddSystem(&HealthSystem{})

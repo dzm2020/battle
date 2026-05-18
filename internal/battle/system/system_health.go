@@ -23,10 +23,10 @@ func (s *HealthSystem) Update(dt float64) {
 			s.world.RemoveComponent(e, &component.ResolvedDamage{})
 			return
 		}
-		attr.Sub(config.AttrHp, rd.Amount)
+		component.AttrSub(attr, config.AttrHp, rd.Amount)
 		if h, ok := s.world.GetComponent(e, &component.Health{}); ok {
 			hc := h.(*component.Health)
-			hc.Current = attr.Get(config.AttrHp)
+			hc.Current = component.AttrCurrent(attr, config.AttrHp)
 			if hc.Current < 0 {
 				hc.Current = 0
 			}

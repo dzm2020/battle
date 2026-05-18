@@ -23,12 +23,12 @@ func (s *HealSystem) Update(dt float64) {
 		if ph.Amount <= 0 {
 			return
 		}
-		hp := attr.Get(config.AttrHp)
+		hp := component.AttrCurrent(attr, config.AttrHp)
 		//  死亡就别治疗了
 		if hp <= 0 {
 			return
 		}
-		attr.Add(config.AttrHp, ph.Amount)
+		component.AttrAdd(attr, config.AttrHp, ph.Amount)
 
 		s.world.RemoveComponent(e, &component.PendingHeal{})
 	})

@@ -1,4 +1,4 @@
-package skill
+package system
 
 import (
 	"battle/ecs"
@@ -64,12 +64,12 @@ func (s *CastValidationSystem) Update(dt float64) {
 
 		resourceKey, cost := skillCfg.ConsumeType, skillCfg.ConsumeValue
 		if cost > 0 {
-			if attrs.Get(resourceKey) < cost {
+			if component.AttrCurrent(attrs, resourceKey) < cost {
 				s.world.RemoveComponent(e, &component.SkillCastRequest{})
 				return
 			}
 			//  扣除资源
-			attrs.Add(resourceKey, -cost)
+			component.AttrAdd(attrs, resourceKey, -cost)
 		}
 
 		s.world.RemoveComponent(e, &component.SkillCastRequest{})

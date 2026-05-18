@@ -2,7 +2,6 @@ package room
 
 import (
 	"battle/internal/battle/config"
-	"battle/internal/battle/pb"
 	"battle/internal/battle/room/room_builder"
 	"context"
 	"errors"
@@ -31,7 +30,16 @@ var (
 )
 
 // CreateRoom 根据 dungeonId 加载副本配置，并按 [config.DungeonConfig.Type] 选择已注册的装配逻辑创建房间。
-func CreateRoom(dungeonId int32, options *room_builder.Options) (*Room, error) {
+func CreateRoom(dungeonId int32, spec *room_builder.Spec) (*Room, error) {
+	r := &Room{
+		id:    GetManager().NextID(),
+		tps:   60,
+		phase: PhaseLobby,
+		world: ecs.NewWorld(100),
+	}
+
+	GetManager().Add(r)
+
 	desc := config.GetDungeonConfigByID(dungeonId)
 	if desc == nil {
 		return nil, ErrNoDungeonConfig
@@ -42,25 +50,14 @@ func CreateRoom(dungeonId int32, options *room_builder.Options) (*Room, error) {
 		return nil, err
 	}
 
-	r := &Room{
-		id:    GetManager().NextID(),
-		tps:   60,
-		phase: PhaseLobby,
-		world: ecs.NewWorld(100),
-		grid:  grid,
-	}
-
-	GetManager().Add(r)
-
-	component.Register(r.world)
 	r.SetGrid(grid)
+
+	component.Init(r.world)
+
+	spec.World = r.world
+	spec.Desc = desc
 	//  构建房间
-	if err = room_builder.Build(desc.Type, &room_builder.Spec{
-		World: r.world,
-		Desc:  desc,
-		Self:  options.Self,
-		Enemy: options.Enemy,
-	}); err != nil {
+	if err = room_builder.Build(spec); err != nil {
 		return nil, err
 	}
 
@@ -98,9 +95,8 @@ func (r *Room) ID() uint64 { return r.id }
 // SetGrid 设置空间网格；传入 [land.Grid]，内部会绑定本房间的 [Room.World]。
 func (r *Room) SetGrid(base *land.Grid) {
 	r.grid = base
-	if r.world != nil {
-		component.InitResource(r.world, base)
-	}
+
+	ecs.InsertResource(r.world, base)
 }
 
 func (r *Room) Grid() *land.Grid { return r.grid }

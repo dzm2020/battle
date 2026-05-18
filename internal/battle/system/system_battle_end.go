@@ -52,7 +52,7 @@ func (s *BattleEndSystem) Update(dt float64) {
 	case currSides == 0 && s.prevSides > 0:
 		s.finish(BattleEndPayloadDraw)
 	case s.prevSides >= 2 && currSides == 1:
-		s.finish(int(winningSide))
+		s.finish(sideToBattleEndPayload(winningSide))
 	default:
 		s.prevSides = currSides
 	}
@@ -67,10 +67,10 @@ func (s *BattleEndSystem) finish(winnerPayload int) {
 }
 
 // countAliveSides 返回有存活单位的阵营个数；若恰好 1 个阵营则返回该 Side。
-func countAliveSides(q *ecs.Query2[*component.Team, *component.Attributes]) (count int, soleSide uint8) {
-	seen := make(map[uint8]bool)
+func countAliveSides(q *ecs.Query2[*component.Team, *component.Attributes]) (count int, soleSide component.SideType) {
+	seen := make(map[component.SideType]bool)
 	q.ForEach(func(_ ecs.Entity, t *component.Team, h *component.Attributes) {
-		if h.GetHP() <= 0 {
+		if component.AttrHP(h) <= 0 {
 			return
 		}
 		seen[t.Side] = true
@@ -83,4 +83,15 @@ func countAliveSides(q *ecs.Query2[*component.Team, *component.Attributes]) (cou
 		}
 	}
 	return count, soleSide
+}
+
+func sideToBattleEndPayload(side component.SideType) int {
+	switch side {
+	case component.SideTypeRed:
+		return 0
+	case component.SideTypeBlue:
+		return 1
+	default:
+		return BattleEndPayloadDraw
+	}
 }

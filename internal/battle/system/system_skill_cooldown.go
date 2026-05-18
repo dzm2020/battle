@@ -1,4 +1,4 @@
-package skill
+package system
 
 import (
 	"battle/ecs"

@@ -20,7 +20,7 @@ func (s *DeathSystem) Initialize(w *ecs.World) {
 
 func (s *DeathSystem) Update(dt float64) {
 	s.q.ForEach(func(e ecs.Entity, h *component.Attributes) {
-		hp := h.Get(config.AttrHp)
+		hp := component.AttrCurrent(h, config.AttrHp)
 		if hp > 0 {
 			return
 		}

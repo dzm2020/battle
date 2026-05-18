@@ -3,9 +3,17 @@ package room_builder
 import (
 	"battle/ecs"
 	"battle/internal/battle/config"
+	"battle/internal/battle/land"
 	"battle/internal/battle/pb"
+	"battle/internal/battle/room"
+	"errors"
 
 	"github.com/duke-git/lancet/v2/maputil"
+)
+
+var (
+	ErrNoDungeonConfig = errors.New("no dungeon config")
+	ErrNoMapConfig     = errors.New("no map config")
 )
 
 type Spec struct {
@@ -41,7 +49,7 @@ func getBuilder(t int32) builder {
 	return defaultBuilder
 }
 
-func Build(spec *Spec) error {
-	builder := getBuilder(spec.Desc.Type)
+func Build(t int32, spec *Spec) error {
+	builder := getBuilder(t)
 	return builder(spec)
 }
