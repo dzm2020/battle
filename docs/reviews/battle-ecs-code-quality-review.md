@@ -48,11 +48,11 @@
 | **组件带行为** | 如 `Attributes.Add/Set`、`DamageQueue.Add`——偏 **富领域对象**，严格 ECS 倾向纯数据 + System 改值。 |
 | **镜像状态** | `Attributes` 内 HP 与 `Health` 组件需 `HealthSystem` 同步，**单一事实来源**不清晰。 |
 | ~~施法意图双轨~~ | 已收敛：**仅 `SkillCastRequest`**（`RequestSkillCast` / `SetSkillCastRequest`）；`CastIntent` 已移除。 |
-| **工厂在 System 外** | `unit.Spawn` / `CreateByID` 在装配层直接挂技能、Buff，属 **entity factory**，不算违规但非「一切皆 System」。 |
+| ~~工厂在 System 外~~ | 已迁入 **`entity_factory`**：出生装配唯一入口；`unit` 包仅保留废弃别名。运行时 skill/buff 仍走原包与 System。 |
 | **Resource 与 Component 混用** | `SpawnRequestQueue` 实现 `Component()` 接口，实际却作为 **World Resource** 单例使用；`SpawnSystem` 不通过 Query 消费，易造成概念混淆。 |
 | **掩码上限** | `EntityComponents.mask` 为 `uint64`，`compID` 可到 255；**组件种类 >64 时 mask 失效**。 |
 | **`AddComponent` 静默失败** | 同类型组件已存在时直接 return，不替换、不报错。 |
-| **全局 Resource 未成体系** | `Grid` 在 `Room.SetGrid` 注入，`SpawnRequestQueue` 在 `InitResource` 注入，缺少统一的 `BattleContext` 文档与类型。 |
+| ~~全局 Resource 未成体系~~ | 已统一为 **`runtime.BattleContext`**（`Grid` + `SpawnQueue`），经 `runtime.Install` 注入。 |
 
 ### 3.3 结论
 
@@ -131,7 +131,7 @@ CreateRoom → SetGrid（注入 *land.Grid）→ component.Init
 | **P1** | 厘清 `SpawnRequestQueue`：**仅 Resource** 或 **挂实体上的 Queue 组件 + Query**，避免双重身份。 |
 | **P2** | Query 按 `compID` 维护实体索引，避免每帧全表扫描。 |
 | **P2** | 限制组件数 ≤64 或扩展 `mask` 实现。 |
-| **P3** | 组件逐步改为纯数据；`unit` 包改名为 `entity_factory` 并写清装配边界。 |
+| ~~P3 entity_factory~~ | 已完成；组件纯数据见 `attr_ops` / `DamageQueueAppend` 等。 |
 
 可执行清单见 [guides/optimization-recommendations.md](../guides/optimization-recommendations.md)。
 

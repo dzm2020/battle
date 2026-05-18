@@ -6,10 +6,7 @@ import (
 )
 
 func pveBuilder(spec *Spec) error {
-	//  初始化system
 	system.AddCombatSystems(spec.World)
-	//  初始化全局资源
-	component.InitResource(spec.World)
 	//  创建怪物
 	if err := spawnMonstersForDesc(spec, component.SideTypeBlue); err != nil {
 		return err

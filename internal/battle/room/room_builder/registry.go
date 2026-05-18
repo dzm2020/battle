@@ -14,7 +14,7 @@ type Spec struct {
 	Self, Enemy *pb.Player
 }
 
-// RoomBootstrap 按副本类型装配 [room.Room]：应调用 [room.Room.SetGrid]、创建怪物/玩家实体等；在 [component.Register] 之后调用。
+// RoomBootstrap 按副本类型装配 [room.Room]：须在 [component.Init] 与 [runtime.Install] 之后调用；通过 SpawnQueue 入队单位。
 type builder func(ctx *Spec) error
 
 var (

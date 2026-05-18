@@ -1,12 +1,10 @@
 package component
 
-import (
-	"battle/ecs"
-)
+import "battle/ecs"
 
+// Init 注册战斗组件类型；局内资源请用 [runtime.Install] 注入 [runtime.BattleContext]。
 func Init(w *ecs.World) {
 	InitCombatTypes(w.Registry())
-	InitResource(w)
 }
 
 // InitCombatTypes 注册战斗相关组件类型 ID；创建 World 后、实例化 Query 前应调用一次。
@@ -25,15 +23,7 @@ func InitCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&PendingHeal{})
 }
 
-// InitResource 注入局内单例资源（如空间网格）；开房或 [room.Room.SetGrid] 时调用。
-func InitResource(w *ecs.World) {
-	if w == nil {
-		return
-	}
-	ecs.InsertResource(w, &SpawnRequestQueue{})
-}
-
-// RegisterCombatTypesWorld 向战斗 World 注册全部战斗组件类型（测试用）。
+// RegisterCombatTypesWorld 向战斗 World 注册全部战斗组件类型（测试用，不含 BattleContext）。
 func RegisterCombatTypesWorld(w *ecs.World) {
 	InitCombatTypes(w.Registry())
 }

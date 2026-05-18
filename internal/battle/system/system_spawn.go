@@ -3,13 +3,13 @@ package system
 import (
 	"battle/ecs"
 	"battle/internal/battle/component"
+	"battle/internal/battle/entity_factory"
 	"battle/internal/battle/land"
 	"battle/internal/battle/log"
-	"battle/internal/battle/unit"
+	"battle/internal/battle/runtime"
 )
 
-// SpawnSystem 消费 [component.SpawnRequestQueue]，按请求创建单位并登记到空间网格。
-// 依赖 [component.InitResource] 注入的 [*land.Grid]；无网格时保留队列待下帧重试。
+// SpawnSystem 消费 [runtime.BattleContext].SpawnQueue，按请求创建单位并登记到 Grid。
 type SpawnSystem struct {
 	world *ecs.World
 }
@@ -19,15 +19,19 @@ func (s *SpawnSystem) Initialize(w *ecs.World) {
 }
 
 func (s *SpawnSystem) Update(_ float64) {
-	grid, hasGrid := ecs.GetResource[*land.Grid](s.world)
-	if !hasGrid || grid == nil {
+	ctx, err := runtime.MustGet(s.world)
+	if err != nil {
 		return
 	}
-	queue, ok := ecs.GetResource[*component.SpawnRequestQueue](s.world)
-	if !ok || queue == nil {
+	grid := ctx.Grid
+	if grid == nil {
 		return
 	}
-	//  消费队列
+	queue := ctx.SpawnQueue
+	if queue == nil {
+		return
+	}
+
 	var pending []*component.SpawnRequest
 	for _, request := range queue.Queue {
 		if s.fulfill(grid, request) {
@@ -35,12 +39,11 @@ func (s *SpawnSystem) Update(_ float64) {
 		}
 		pending = append(pending, request)
 	}
-	//  清空
 	queue.Queue = pending
 }
 
 func (s *SpawnSystem) fulfill(grid *land.Grid, req *component.SpawnRequest) bool {
-	if req.UnitID == 0 && req.Data.ID == 0 {
+	if req.UnitID == 0 && (req.Data == nil || req.Data.ID == 0) {
 		return true
 	}
 
@@ -59,9 +62,9 @@ func (s *SpawnSystem) fulfill(grid *land.Grid, req *component.SpawnRequest) bool
 	)
 	if req.Data != nil {
 		data := req.Data
-		e, err = unit.CreateByUnit(s.world, data, components...)
+		e, err = entity_factory.CreateFromPBUnit(s.world, data, components...)
 	} else {
-		e, err = unit.CreateByID(s.world, req.UnitID, components...)
+		e, err = entity_factory.CreateByConfigID(s.world, req.UnitID, components...)
 	}
 	if err != nil {
 		log.Error("[spawn] 创建单位失败 unitID=%d dataID=%d: %v", req.UnitID, req.Data.ID, err)
@@ -72,7 +75,7 @@ func (s *SpawnSystem) fulfill(grid *land.Grid, req *component.SpawnRequest) bool
 		return true
 	}
 
-	if req.TeamEntity != 0 && req.Data.ID != 0 {
+	if req.TeamEntity != 0 && req.Data != nil && req.Data.ID != 0 {
 		if pc, ok := s.world.GetComponent(req.TeamEntity, &component.Player{}); ok {
 			pc.(*component.Player).Units[req.Data.ID] = e
 		}

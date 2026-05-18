@@ -6,11 +6,10 @@ import (
 	"testing"
 
 	"battle/ecs"
-	"battle/internal/battle/attributes"
 
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/unit"
+	"battle/internal/battle/pb"
 )
 
 func battleConfigDirForBuff(t *testing.T) string {
@@ -23,13 +22,13 @@ func battleConfigDirForBuff(t *testing.T) string {
 }
 
 // testPlayer 与 room_test 一致：50 HP，与怪物（模板 hp=100）区分。
-func testPlayerForBuff() *unit.Player {
-	return &unit.Player{
+func testPlayerForBuff() *pb.Player {
+	return &pb.Player{
 		ID: 1,
-		Units: map[uint32]*unit.PlayerUnit{
+		Units: map[uint32]*pb.PlayerUnit{
 			1: {
 				ID: 1,
-				Stats: []attributes.Attribute{
+				Stats: []pb.Attribute{
 					{Type: config.AttrHp, InitValue: 50, MaxValue: 50},
 				},
 				Ability: []int32{1},

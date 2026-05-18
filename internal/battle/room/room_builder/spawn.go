@@ -1,57 +1,71 @@
 package room_builder
 
 import (
-	"battle/ecs"
 	"battle/internal/battle/component"
-	"battle/internal/battle/land"
 	"battle/internal/battle/pb"
+	"battle/internal/battle/runtime"
 	"errors"
 )
 
-// spawnMonstersForDesc 按副本配置刷怪；无空位时跳过该只怪（与原先 pve 循环 continue 一致）。
+// spawnMonstersForDesc 按副本配置刷怪；无空位时返回错误。
 func spawnMonstersForDesc(spec *Spec, side component.SideType) error {
 	w := spec.World
 	desc := spec.Desc
-	queue, _ := ecs.GetResource[*component.SpawnRequestQueue](w)
-	grid, _ := ecs.GetResource[*land.Grid](w)
+	ctx, err := runtime.MustGet(w)
+	if err != nil {
+		return err
+	}
+	if ctx.Grid == nil {
+		return runtime.ErrNilGrid
+	}
 	for _, monsterID := range desc.Monster {
-		cellX, cellZ, ok := grid.PickFreeCell(side == component.SideTypeRed)
+		cellX, cellZ, ok := ctx.Grid.PickFreeCell(side == component.SideTypeRed)
 		if !ok {
 			return errors.New("failed to pick cell")
 		}
-
-		queue.Queue = append(queue.Queue, &component.SpawnRequest{
+		if err := runtime.EnqueueSpawn(w, &component.SpawnRequest{
 			UnitID: monsterID,
 			Side:   side,
 			CellX:  cellX,
 			CellY:  cellZ,
-		})
+		}); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-// spawnPlayersOnGridWithTeam 将单个 [pb.Player] 的单位放入网格；单位带 [component.Team]（含队长实体引用）。
+// spawnPlayersOnGridWithTeam 将单个 [pb.Player] 的单位入队刷怪请求。
 func spawnPlayersOnGridWithTeam(spec *Spec, player *pb.Player, side component.SideType) error {
+	if player == nil {
+		return nil
+	}
 	w := spec.World
+	ctx, err := runtime.MustGet(w)
+	if err != nil {
+		return err
+	}
+	if ctx.Grid == nil {
+		return runtime.ErrNilGrid
+	}
 
-	queue, _ := ecs.GetResource[*component.SpawnRequestQueue](w)
-	grid, _ := ecs.GetResource[*land.Grid](w)
-
-	for _, unit := range player.Units {
-		if unit == nil {
+	for _, u := range player.Units {
+		if u == nil {
 			return errors.New("nil unit")
 		}
-		cellX, cellZ, ok := grid.PickFreeCell(side == component.SideTypeRed)
+		cellX, cellZ, ok := ctx.Grid.PickFreeCell(side == component.SideTypeRed)
 		if !ok {
 			return errors.New("failed to pick cell")
 		}
-		queue.Queue = append(queue.Queue, &component.SpawnRequest{
-			UnitID: int32(unit.ID),
+		if err := runtime.EnqueueSpawn(w, &component.SpawnRequest{
+			UnitID: int32(u.ID),
 			Side:   side,
 			CellX:  cellX,
 			CellY:  cellZ,
-			Data:   unit,
-		})
+			Data:   u,
+		}); err != nil {
+			return err
+		}
 	}
 	return nil
 }

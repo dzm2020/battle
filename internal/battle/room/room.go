@@ -10,6 +10,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/land"
+	"battle/internal/battle/runtime"
 	"battle/internal/battle/tick"
 )
 
@@ -50,9 +51,9 @@ func CreateRoom(dungeonId int32, spec *room_builder.Spec) (*Room, error) {
 		return nil, err
 	}
 
-	r.SetGrid(grid)
-
 	component.Init(r.world)
+	r.SetGrid(grid)
+	runtime.Install(r.world, runtime.New(grid))
 
 	spec.World = r.world
 	spec.Desc = desc
@@ -92,11 +93,17 @@ func (r *Room) phaseIs(p Phase) bool {
 
 func (r *Room) ID() uint64 { return r.id }
 
-// SetGrid 设置空间网格；传入 [land.Grid]，内部会绑定本房间的 [Room.World]。
+// SetGrid 设置空间网格，并同步到 [runtime.BattleContext].Grid（须已 [runtime.Install] 或随后 Install）。
 func (r *Room) SetGrid(base *land.Grid) {
 	r.grid = base
-
-	ecs.InsertResource(r.world, base)
+	if r.world == nil {
+		return
+	}
+	if ctx, ok := runtime.Get(r.world); ok {
+		ctx.Grid = base
+		return
+	}
+	runtime.Install(r.world, runtime.New(base))
 }
 
 func (r *Room) Grid() *land.Grid { return r.grid }
