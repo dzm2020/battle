@@ -4,7 +4,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/event"
-	"battle/internal/battle/system/runtime"
+	"battle/internal/battle/resource"
 )
 
 // BattleEndPayloadDraw 全员阵亡 / 同归于尽时 battle end 事件的 [event.Payload].IntPayload 取值。
@@ -14,7 +14,7 @@ const BattleEndPayloadDraw = -1
 // 仅统计同时挂载 [component.Team] 与 [component.Attributes] 且 hp > 0 的实体（参战单位）。
 // IntPayload：获胜方 [component.Team].Side（0–255）；平局为 [BattleEndPayloadDraw]。
 //
-// 开局存活阵营数由 [BattleInitSystem] 写入 [runtime.BattleContext].OpeningSides（刷怪队列清空后）；
+// 开局存活阵营数由 [BattleInitSystem] 写入 [resource.BattleState].OpeningSides（刷怪队列清空后）；
 // 首帧仅用其建立基线，避免首帧击杀时无法产生「上一帧仍为多阵营」的过渡。
 //
 // 须注册在 [DeathSystem] 之后（见 [AddCombatSystems]），以便死亡实体已从世界移除后再统计。
@@ -89,11 +89,11 @@ func countAliveSides(q *ecs.Query2[*component.Team, *component.Attributes]) (cou
 }
 
 func openingSidesFromContext(w *ecs.World) int {
-	ctx, ok := runtime.Get(w)
-	if !ok || ctx == nil || !ctx.Started {
+	st := ecs.GetResource[resource.BattleState](w)
+	if st == nil || !st.Started {
 		return 0
 	}
-	return ctx.OpeningSides
+	return st.OpeningSides
 }
 
 func sideToBattleEndPayload(side component.SideType) int {

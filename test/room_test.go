@@ -10,9 +10,9 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/system/room_factory"
 	"battle/internal/battle/pb"
 	"battle/internal/battle/room"
+	"battle/internal/battle/system/room_bootstrap"
 )
 
 func battleConfigDirForRoom(t *testing.T) string {
@@ -41,7 +41,7 @@ func TestRoom(t *testing.T) {
 		},
 	}
 
-	r, err := room.CreateRoom(1, &room_factory.Spec{Self: player})
+	r, err := room.CreateRoom(1, &room_bootstrap.Spec{Self: player})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestCreateRoom_RejectsPVPDungeonWithoutEnemy(t *testing.T) {
 	dir := battleConfigDirForRoom(t)
 	config.Load(dir)
 
-	_, err := room.CreateRoom(2, &room_factory.Spec{Self: &pb.Player{ID: 1}})
+	_, err := room.CreateRoom(2, &room_bootstrap.Spec{Self: &pb.Player{ID: 1}})
 	if !errors.Is(err, room.ErrUseCreatePVPRoom) {
 		t.Fatalf("PVP 副本缺少 Enemy 应返回 ErrUseCreatePVPRoom，实际 %v", err)
 	}

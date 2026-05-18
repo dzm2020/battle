@@ -6,8 +6,15 @@ import (
 	"battle/internal/battle/config"
 	"battle/internal/battle/land"
 	"battle/internal/battle/resource"
-	"battle/internal/battle/system/room_factory"
+	"battle/internal/battle/system/room_bootstrap"
 )
+
+func init() {
+	room_bootstrap.SetDefaultInstaller(AddPVESystems)
+
+	room_bootstrap.RegisterInstaller(config.DungeonTypePVE, AddPVESystems)
+	room_bootstrap.RegisterInstaller(config.DungeonTypePVP, AddPVPSystems)
+}
 
 // BattleInitSystem 在 [SpawnSystem] 消费完 [runtime.BattleContext].SpawnQueue 后完成单局开战初始化：
 // 快照开局存活阵营数、标记 [runtime.BattleContext].Started，并派发 [event.KindBattleStart]。
@@ -47,7 +54,7 @@ func (s *BattleInitSystem) Update(_ float64) {
 	ecs.AddResource(s.world, grid)
 
 	//  构建房间
-	if err = room_factory.Create(s.world, spec); err != nil {
+	if err = room_bootstrap.Bootstrap(s.world, spec); err != nil {
 		return
 	}
 

@@ -45,6 +45,10 @@ type Room struct {
 	runWG  sync.WaitGroup
 }
 
+func (r *Room) ID() uint64 {
+	return r.id
+}
+
 // World 该房间独占的 ECS 世界；大厅阶段即可 CreateEntity / 挂组件。
 func (r *Room) World() *ecs.World {
 	return r.world
