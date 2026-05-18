@@ -2,13 +2,13 @@ package component
 
 import "battle/ecs"
 
-// Init 注册战斗组件类型；局内资源请用 [system/runtime.Install] 注入 [runtime.BattleContext]。
-func Init(w *ecs.World) {
-	InitCombatTypes(w.Registry())
+// Register 注册战斗组件类型；局内资源请用 [system/runtime.Install] 注入 [runtime.BattleContext]。
+func Register(w *ecs.World) {
+	RegisterCombatTypes(w.Registry())
 }
 
-// InitCombatTypes 注册战斗相关组件类型 ID；创建 World 后、实例化 Query 前应调用一次。
-func InitCombatTypes(r *ecs.ComponentRegistry) {
+// RegisterCombatTypes 注册战斗相关组件类型 ID；创建 World 后、实例化 Query 前应调用一次。
+func RegisterCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&DamageQueue{})
 	r.Register(&ResolvedDamage{})
 	r.Register(&Attributes{})
@@ -21,9 +21,4 @@ func InitCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&SkillCastRequest{})
 	r.Register(&SkillCastState{})
 	r.Register(&PendingHeal{})
-}
-
-// RegisterCombatTypesWorld 向战斗 World 注册全部战斗组件类型（测试用，不含 BattleContext）。
-func RegisterCombatTypesWorld(w *ecs.World) {
-	InitCombatTypes(w.Registry())
 }

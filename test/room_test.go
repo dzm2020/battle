@@ -10,7 +10,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/factory/room_factory"
+	"battle/internal/battle/system/room_factory"
 	"battle/internal/battle/pb"
 	"battle/internal/battle/room"
 )

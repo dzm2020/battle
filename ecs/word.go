@@ -10,7 +10,7 @@ type World struct {
 	entities  map[Entity]*EntityComponents
 	systems   []System
 	events    *eventBus
-	resources map[reflect.Type]any // Resource 容器
+	resources Resources
 }
 
 // NewWorld 创建世界；lifecycle 用于在实体/组件生命周期填充 [Event.Payload]（可为零值，此时 Payload 恒为 nil）。
@@ -19,9 +19,27 @@ func NewWorld(initEntityNum int32) *World {
 		registry:  NewComponentRegistry(),
 		entities:  make(map[Entity]*EntityComponents, initEntityNum),
 		systems:   make([]System, 0, 16),
-		resources: make(map[reflect.Type]any),
+		resources: newResources(),
 		events:    newEventBus(),
 	}
+}
+
+// Resources 返回 World 资源容器。
+// 资源为不与实体绑定的单例数据（如地图、刷怪队列）。
+//
+// 日常使用推荐 [Resource]、[AddResource]、[GetResource]。
+func (w *World) Resources() *Resources {
+	return &w.resources
+}
+
+func (w *World) resourceID(tp reflect.Type) ResID {
+	id, _ := w.resources.registry.resourceID(tp)
+	return ResID{id: id}
+}
+
+// ResetResources 移除全部资源（实体不受影响）。
+func (w *World) ResetResources() {
+	w.resources.reset()
 }
 
 func (w *World) emitLifecycleCreated(e Entity) {

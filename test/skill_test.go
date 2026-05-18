@@ -26,7 +26,7 @@ func battleConfigDirForSkill(t *testing.T) string {
 func newSkillCombatWorld(t *testing.T) *ecs.World {
 	t.Helper()
 	w := event.NewCombatWorld(8)
-	component.RegisterCombatTypesWorld(w)
+	component.Init(w)
 	return w
 }
 

@@ -4,6 +4,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/event"
+	"battle/internal/battle/system/runtime"
 )
 
 // BattleEndPayloadDraw 全员阵亡 / 同归于尽时 battle end 事件的 [event.Payload].IntPayload 取值。
@@ -13,23 +14,21 @@ const BattleEndPayloadDraw = -1
 // 仅统计同时挂载 [component.Team] 与 [component.Attributes] 且 hp > 0 的实体（参战单位）。
 // IntPayload：获胜方 [component.Team].Side（0–255）；平局为 [BattleEndPayloadDraw]。
 //
-// 在 [Initialize] 时快照「开局」存活阵营数（须在本系统随 [AddCombatSystems] 注册前已放入参战实体，否则 openingSides 恒为 0）；
+// 开局存活阵营数由 [BattleInitSystem] 写入 [runtime.BattleContext].OpeningSides（刷怪队列清空后）；
 // 首帧仅用其建立基线，避免首帧击杀时无法产生「上一帧仍为多阵营」的过渡。
 //
 // 须注册在 [DeathSystem] 之后（见 [AddCombatSystems]），以便死亡实体已从世界移除后再统计。
 type BattleEndSystem struct {
 	world        *ecs.World
 	q            *ecs.Query2[*component.Team, *component.Attributes]
-	done         bool
-	prevSides    int // -1 未建立基线；之后为上一帧结算后的存活阵营数
-	openingSides int // Initialize 时的存活阵营数（世界已含实体时应先加人再 Register 本系统）
+	done      bool
+	prevSides int // -1 未建立基线；之后为上一帧结算后的存活阵营数
 }
 
 func (s *BattleEndSystem) Initialize(w *ecs.World) {
 	s.world = w
 	s.q = ecs.NewQuery2[*component.Team, *component.Attributes](w)
 	s.prevSides = -1
-	s.openingSides, _ = countAliveSides(s.q)
 }
 
 func (s *BattleEndSystem) Update(dt float64) {
@@ -40,8 +39,12 @@ func (s *BattleEndSystem) Update(dt float64) {
 	currSides, winningSide := countAliveSides(s.q)
 
 	if s.prevSides < 0 {
-		if s.openingSides >= 2 {
-			s.prevSides = s.openingSides
+		opening := openingSidesFromContext(s.world)
+		if opening == 0 {
+			opening = currSides
+		}
+		if opening >= 2 {
+			s.prevSides = opening
 		} else {
 			s.prevSides = currSides
 		}
@@ -83,6 +86,14 @@ func countAliveSides(q *ecs.Query2[*component.Team, *component.Attributes]) (cou
 		}
 	}
 	return count, soleSide
+}
+
+func openingSidesFromContext(w *ecs.World) int {
+	ctx, ok := runtime.Get(w)
+	if !ok || ctx == nil || !ctx.Started {
+		return 0
+	}
+	return ctx.OpeningSides
 }
 
 func sideToBattleEndPayload(side component.SideType) int {

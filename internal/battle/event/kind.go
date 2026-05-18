@@ -8,6 +8,7 @@ const (
 	KindDamageMissed
 	KindHealApplied
 	KindDeath
+	KindBattleStart
 	KindBattleEnd
 )
 

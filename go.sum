@@ -6,6 +6,8 @@ github.com/edwinsyarief/teishoku v1.7.5 h1:saonQz/obnUqAUcRLtp2lMOgrsOQQcw/I7/fD
 github.com/edwinsyarief/teishoku v1.7.5/go.mod h1:Jma04ti6kGYa/sxvb1moY2f1YrWGFLBSb3O01Vo8LpE=
 github.com/mlange-42/ark v0.8.0 h1:8VzpLNTrcYcYZolcaZ/NHHv9fWdgbI98v86CenHILwA=
 github.com/mlange-42/ark v0.8.0/go.mod h1:gkS9cuklENPTmSjL2z4DcJgJsIVqF1yNwFlx48Hz/Sw=
+github.com/mlange-42/ark v0.8.1 h1:AlIKZLybXemLd62Onpc8CikgW2WQsYcPDqwfPFakILE=
+github.com/mlange-42/ark v0.8.1/go.mod h1:gkS9cuklENPTmSjL2z4DcJgJsIVqF1yNwFlx48Hz/Sw=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=

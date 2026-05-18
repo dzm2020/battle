@@ -3,10 +3,10 @@ package system
 import (
 	"battle/ecs"
 	"battle/internal/battle/component"
-	"battle/internal/battle/factory/entity_factory"
 	"battle/internal/battle/land"
 	"battle/internal/battle/log"
-	"battle/internal/battle/system/runtime"
+	"battle/internal/battle/resource"
+	"battle/internal/battle/system/entity_factory"
 )
 
 // SpawnSystem 消费 [runtime.BattleContext].SpawnQueue，按请求创建单位并登记到 Grid。
@@ -19,20 +19,11 @@ func (s *SpawnSystem) Initialize(w *ecs.World) {
 }
 
 func (s *SpawnSystem) Update(_ float64) {
-	ctx, err := runtime.MustGet(s.world)
-	if err != nil {
-		return
-	}
-	grid := ctx.Grid
-	if grid == nil {
-		return
-	}
-	queue := ctx.SpawnQueue
-	if queue == nil {
-		return
-	}
+	grid, _ := resource.Grid(s.world)
 
-	var pending []*component.SpawnRequest
+	queue, _ := resource.SpawnQueue(s.world)
+
+	var pending []*resource.SpawnRequest
 	for _, request := range queue.Queue {
 		if s.fulfill(grid, request) {
 			continue
@@ -42,7 +33,7 @@ func (s *SpawnSystem) Update(_ float64) {
 	queue.Queue = pending
 }
 
-func (s *SpawnSystem) fulfill(grid *land.Grid, req *component.SpawnRequest) bool {
+func (s *SpawnSystem) fulfill(grid *land.Grid, req *resource.SpawnRequest) bool {
 	if req.UnitID == 0 && (req.Data == nil || req.Data.ID == 0) {
 		return true
 	}
@@ -83,7 +74,7 @@ func (s *SpawnSystem) fulfill(grid *land.Grid, req *component.SpawnRequest) bool
 	return true
 }
 
-func resolveSpawnCell(grid *land.Grid, req *component.SpawnRequest) (cellX, cellY int, ok bool) {
+func resolveSpawnCell(grid *land.Grid, req *resource.SpawnRequest) (cellX, cellY int, ok bool) {
 	if req.CellX >= 0 && req.CellY >= 0 {
 		return req.CellX, req.CellY, true
 	}
