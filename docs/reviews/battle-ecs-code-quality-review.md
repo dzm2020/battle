@@ -47,7 +47,7 @@
 | **非数据导向存储** | 每实体 `map[uint8]Component`；Query **每帧遍历全部实体** O(N)，无 Archetype / SoA / Chunk。 |
 | **组件带行为** | 如 `Attributes.Add/Set`、`DamageQueue.Add`——偏 **富领域对象**，严格 ECS 倾向纯数据 + System 改值。 |
 | **镜像状态** | `Attributes` 内 HP 与 `Health` 组件需 `HealthSystem` 同步，**单一事实来源**不清晰。 |
-| **施法意图双轨** | `CastIntent` 与 `SkillCastRequest` 并存，需文档约定唯一入口。 |
+| ~~施法意图双轨~~ | 已收敛：**仅 `SkillCastRequest`**（`RequestSkillCast` / `SetSkillCastRequest`）；`CastIntent` 已移除。 |
 | **工厂在 System 外** | `unit.Spawn` / `CreateByID` 在装配层直接挂技能、Buff，属 **entity factory**，不算违规但非「一切皆 System」。 |
 | **Resource 与 Component 混用** | `SpawnRequestQueue` 实现 `Component()` 接口，实际却作为 **World Resource** 单例使用；`SpawnSystem` 不通过 Query 消费，易造成概念混淆。 |
 | **掩码上限** | `EntityComponents.mask` 为 `uint64`，`compID` 可到 255；**组件种类 >64 时 mask 失效**。 |
@@ -127,7 +127,7 @@ CreateRoom → SetGrid（注入 *land.Grid）→ component.Init
 | **P0** | 修复 `utils` 与 `component` 对齐；恢复 `go build ./internal/battle/...` 与 `go test ./ecs/...`。 |
 | **P0** | 补齐 `SpawnRequest.TeamEntity` 或从 `SpawnSystem` 移除对该字段的引用。 |
 | **P1** | 明确 **HP 唯一来源**（`Attributes` 或 `Health` 二选一，另一作只读视图）。 |
-| **P1** | 收敛施法链：`CastIntent` → 校验 → `SkillCastState`，废弃或标注 `SkillCastRequest`。 |
+| ~~P1 施法链~~ | 已收敛：`RequestSkillCast` → `CastValidationSystem` → `SkillCastState` → `CastStateSystem`。 |
 | **P1** | 厘清 `SpawnRequestQueue`：**仅 Resource** 或 **挂实体上的 Queue 组件 + Query**，避免双重身份。 |
 | **P2** | Query 按 `compID` 维护实体索引，避免每帧全表扫描。 |
 | **P2** | 限制组件数 ≤64 或扩展 `mask` 实现。 |

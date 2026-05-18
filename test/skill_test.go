@@ -69,10 +69,7 @@ func hasBuff(w *ecs.World, e ecs.Entity, buffID uint32) bool {
 }
 
 func castSkillRequest(w *ecs.World, caster ecs.Entity, skillID int32, target ecs.Entity) {
-	w.AddComponent(caster, &component.SkillCastRequest{
-		SkillID:      skillID,
-		TargetEntity: target,
-	})
+	component.RequestSkillCast(w, caster, skillID, target)
 }
 
 // TestSkill 覆盖：释放前校验、目标选取（见 SkillEffect 与 TargetSelect 表）、效果生效（伤害 / 加 Buff）。

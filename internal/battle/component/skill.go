@@ -2,13 +2,14 @@ package component
 
 import "battle/ecs"
 
-// SkillCastRequest
-// @Description: 请求释放技能
+// SkillCastRequest 施法请求（玩法层写入的唯一入口）。
+// 由 [system.CastValidationSystem] 在本帧校验；通过后移除并写入 [SkillCastState]。
+// 写入请使用 [SetSkillCastRequest] 或 [RequestSkillCast]。
 type SkillCastRequest struct {
-	SkillID      int32      // 技能ID
-	TargetEntity ecs.Entity // 主目标实体（若无目标则存Invalid）
-	CastPosition Vector2    // 释放位置（用于地面目标技能）
-	Frame        int        // 请求发出的帧号（用于优先级/取消）
+	SkillID      int32   // 技能配置 ID（与 [RuntimeSkill].ConfigID / 技能表一致）
+	TargetEntity ecs.Entity // 主目标；无目标技能可为 0
+	CastPosition Vector2 // 地面/指向技能落点；非位置技能可留零值
+	Frame        int     // 请求帧号（可选，用于优先级或回放）
 }
 
 func (*SkillCastRequest) Component() {}
@@ -27,34 +28,21 @@ type RuntimeSkill struct {
 	CurrentCooldown int // 当前剩余冷却帧数（0表示可用）
 }
 
-// SkillSet
-// @Description: 玩家拥有技能集合
+// SkillSet 玩家拥有技能集合。
 type SkillSet struct {
 	Skills []*RuntimeSkill
 }
 
 func (*SkillSet) Component() {}
 
-// SkillCastState
-// @Description: 技能释放状态
+// SkillCastState 技能释放状态（校验通过后由 CastValidationSystem 写入）。
 type SkillCastState struct {
-	IsCasting       bool       // 是否正在释放技能
-	SkillId         int        // 正在释放的技能ID
-	RemainingFrames int        // 当前阶段剩余帧数
-	TargetEntity    ecs.Entity // 记录释放时的主目标
+	IsCasting       bool
+	SkillId         int
+	RemainingFrames int
+	TargetEntity    ecs.Entity
 	CastPosition    *Vector2
-	Phase           SkillStage // 技能阶段
+	Phase           SkillStage
 }
 
 func (*SkillCastState) Component() {}
-
-// CastIntent 由外部玩法层写入，表示“本实体希望施放某技能”；[system.SkillIntentSystem] 消费后应移除组件。
-// 同一实体同一帧至多处理一次意图（后者覆盖前者由玩法层避免）。
-type CastIntent struct {
-	// SkillID 对应 [skill.SkillConfig].ID。
-	SkillID uint32
-	// Target 主目标；[skill.TargetScopeSelf] 等作用范围下可忽略；单体与链式需有效实体 ID。
-	Target ecs.Entity
-}
-
-func (*CastIntent) Component() {}

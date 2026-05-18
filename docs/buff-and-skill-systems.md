@@ -49,7 +49,7 @@
 ### 核心数据
 
 - `SkillSet` / `RuntimeSkill`：`ConfigID`、`CurrentCooldown`（帧）。
-- `SkillCastRequest`：外部写入的「本帧要放哪个技能、目标是谁」（含 `SkillID`、`TargetEntity` 等）。
+- `SkillCastRequest`：**施法唯一入口**（玩法层用 `component.RequestSkillCast` / `SetSkillCastRequest` 写入；含 `SkillID`、`TargetEntity` 等）。已移除 `CastIntent`。
 - `SkillCastState`：`Phase`、`RemainingFrames`、`SkillId`、目标与位置等。
 
 ### 辅助 API

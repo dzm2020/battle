@@ -15,7 +15,7 @@
 - **与 Buff**：效果条目 `EffectApplyBuff` 调用 [buff.ApplyBuff]，共享同一份 [buff.DefinitionConfig]。
 - **与伤害**：效果条目 `EffectDamage` 调用 [component.MergePendingDamage]，走既有 **Damage → Health → Death**。
 
-不在本文范围：**打断吟唱**、技能队列、弹道飞行、精确扇形几何（当前无朝向；Cone 可与半径一起做近似）；可用玩法层不写 CastIntent 或扩展组件实现。
+不在本文范围：**打断吟唱**、技能队列、弹道飞行、精确扇形几何（当前无朝向；Cone 可与半径一起做近似）；额外施法入口请扩展 [SkillCastRequest] 字段或玩法层队列，勿再引入第二套意图组件。
 
 ---
 
@@ -74,9 +74,10 @@
 | 组件 | 职责 |
 |------|------|
 | `Team` | `Side` 阵营 |
-| `SkillUser` | 资源、授予列表、冷却 map |
-| `CastIntent` | `SkillID` + 主目标；由 [SkillIntentSystem] 消费 |
-| `SkillCastState` | 吟唱状态 |
+| `SkillSet` | 已学技能与运行时 CD |
+| `Attributes` | 资源属性（如 mana）与战斗属性 |
+| **`SkillCastRequest`** | **施法唯一入口**：`SkillID`、主目标、可选落点；由 [CastValidationSystem] 消费 |
+| `SkillCastState` | 校验通过后的前摇/生效/后摇状态 |
 | `Transform2D` | 可选坐标；用于 `aoeRadius` 与最近/最远 |
 
 ---
@@ -84,16 +85,20 @@
 ## 5. 系统顺序与单帧语义
 
 ```
-BuffSystem → CooldownSystem → SkillChannelSystem → SkillIntentSystem → DamageSystem → HealthSystem → DeathSystem
+SpawnSystem → BuffSystem → CooldownSystem → CastValidationSystem → CastStateSystem → DamageSystem → HealSystem → HealthSystem → DeathSystem → BattleEndSystem
 ```
 
-（语义同前：先吟唱结算，再处理意图。）
+玩法层在本帧调用 `component.RequestSkillCast`（或 `SetSkillCastRequest`）后，`CastValidationSystem` 校验并写入 `SkillCastState`；`CastStateSystem` 推进阶段并触发效果。
 
 ---
 
 ## 6. API 使用流程（玩法层）
 
-（与前一版相同：注册组件 → 加载配置 → AddCombatSystems → 添加单位 → 写 CastIntent → Update。）
+1. `component.Init` / `RegisterCombatTypesWorld`  
+2. 加载技能表 → `system.AddCombatSystems`  
+3. 创建单位并挂 `SkillSet`  
+4. **`component.RequestSkillCast(world, caster, skillID, target)`**（唯一施法入口）  
+5. `world.Update(dt)` 驱动管线  
 
 ---
 
@@ -156,7 +161,7 @@ BuffSystem → CooldownSystem → SkillChannelSystem → SkillIntentSystem → D
 | 条目 | 实现要点 |
 |------|-----------|
 | 配置 | [SkillConfig]：`scope`/`camp`/`pickRule` + ResolveTargets |
-| 管线 | SkillChannelSystem + SkillIntentSystem |
+| 管线 | `RequestSkillCast` → CastValidationSystem → CastStateSystem |
 
 ---
 

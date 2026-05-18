@@ -21,7 +21,6 @@ func InitCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&Transform2D{})
 	r.Register(&SkillSet{})
 	r.Register(&SkillCastRequest{})
-	r.Register(&CastIntent{})
 	r.Register(&SkillCastState{})
 	r.Register(&PendingHeal{})
 }
