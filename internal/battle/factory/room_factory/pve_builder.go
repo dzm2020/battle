@@ -1,4 +1,4 @@
-package room_builder
+package room_factory
 
 import (
 	"battle/internal/battle/component"

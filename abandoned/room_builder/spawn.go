@@ -4,7 +4,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/entity_factory"
+	"battle/internal/battle/factory/entity_factory"
 	"battle/internal/battle/pb"
 	"battle/internal/battle/room"
 )

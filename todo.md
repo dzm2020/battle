@@ -180,3 +180,57 @@ SpawnSystem写的还是不错的
 
 现在就差怎么构造房间了 可以先写一个邦本简化的 后续再扩张？
 
+
+
+
+
+
+
+
+
+### 在ecs规范下 房间创建是否也要做成system
+
+不必。 在常见 ECS 约定里，「房间创建」属于局外/局生命周期，不适合做成每帧跑的 `System`；你们现在的分层是合理的，只需把边界写清楚。
+
+ ECS 里 System 通常做什么
+
+- 在已存在的 `World` 上，按 Query 扫实体，每帧（或固定 tick） 改组件、消费队列。
+- 例子：`SpawnSystem` 消费 `SpawnRequestQueue`、`DamageSystem` 消费 `DamageQueue`。
+
+#### 房间创建在做什么
+
+- 新建 `ecs.World`、加载副本表、建 `land.Grid`、注入 `runtime.BattleContext`、走 `room_builder` 入队刷怪、注册战斗 System、启动 tick。
+- 这是 0→1 的装配/开房，不是「遍历带某组件的实体」。
+
+这类逻辑在业界通常放在：
+
+| 层级                | 职责                             | 你们仓库里                |
+| :------------------ | :------------------------------- | :------------------------ |
+| Room / room_builder | 开房、阶段、表 + 网格 + 初始入队 | `CreateRoom`、`Build`     |
+| entity_factory      | 单个战斗实体出生装配             | `CreateByConfigID` 等     |
+| System              | 帧内规则与队列消费               | `SpawnSystem`、伤害/治疗… |
+
+把整段开房塞进一个叫 `RoomCreateSystem` 的 `Update`，既不符合 Query 模型，也容易和「每帧调用一次」的语义拧在一起。
+
+## 什么时候才值得「像 System」
+
+只有当你把开房步骤也拆成 World 内的数据 + 单帧/多帧管线时，才接近 System，例如：
+
+- 挂 `RoomBootstrap` Resource/组件，专门有一帧跑 `BootstrapSystem`：消费「待刷列表」→ 调 `entity_factory` / 入队 `SpawnRequest`。
+- 或开房后只往 `SpawnQueue` 塞请求，全部由 `SpawnSystem` 在战斗 tick 里刷出来（你们已在往这走）。
+
+那是「进房后的单位生成用 ECS 管线」，不是「CreateRoom 本身要变成 System」。
+
+## 建议约定（写在文档里即可）
+
+Room.CreateRoom / room_builder  →  局生命周期（非 System）
+
+runtime.Install + component.Init →  World 级单例
+
+room_builder 只 EnqueueSpawn     →  不在 builder 里直接 factory（可选收紧）
+
+SpawnSystem                      →  帧内 ECS 消费刷怪队列
+
+结论： ECS 规范并不要求房间创建做成 System；房间 = 容器 + 资源 + 阶段机，战斗实体与规则 = World + System。保持 `CreateRoom` 在 `room`/`room_builder`，把「刷单位」统一交给 `SpawnSystem` + `entity_factory`，就符合 ECS 分工。
+
+若你希望开房也完全帧驱动（例如大厅多帧渐进加载），可以说一下目标，我可以按现有 `BattleContext`/`SpawnQueue` 画一版具体拆分步骤。

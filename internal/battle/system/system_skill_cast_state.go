@@ -4,8 +4,8 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/skill/skill_effect"
-	"battle/internal/battle/target_selector"
+	"battle/internal/battle/system/skill/skill_effect"
+	"battle/internal/battle/system/target_selector"
 )
 
 // CastStateSystem

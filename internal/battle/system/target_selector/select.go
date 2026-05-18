@@ -3,8 +3,8 @@ package target_selector
 import (
 	"battle/ecs"
 	"battle/internal/battle/config"
-	"battle/internal/battle/target_selector/target_fliter"
-	"battle/internal/battle/target_selector/target_sort"
+	"battle/internal/battle/system/target_selector/target_fliter"
+	"battle/internal/battle/system/target_selector/target_sort"
 )
 
 // Select 根据 [config.TargetSelectConfigByID] 选取实体列表。

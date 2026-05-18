@@ -1,7 +1,7 @@
 package test
 
 import (
-	"battle/internal/battle/utils"
+	"battle/internal/battle/system/target_selector"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -11,7 +11,6 @@ import (
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 	"battle/internal/battle/event"
-	"battle/internal/battle/target_selector"
 )
 
 func battleConfigDirForTarget(t *testing.T) string {

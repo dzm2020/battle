@@ -7,13 +7,13 @@
 package entity_factory
 
 import (
+	"battle/internal/battle/system/buff"
+	"battle/internal/battle/system/skill"
 	"fmt"
 
 	"battle/ecs"
-	"battle/internal/battle/buff"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/skill"
 )
 
 // Spec 出生装配参数：属性、初始技能/Buff、额外组件。

@@ -1,11 +1,11 @@
 package buff
 
 import (
-	"battle/internal/battle/buff/buff_util"
+	"battle/internal/battle/system/buff/buff_util"
+	"battle/internal/battle/system/buff/overlay"
 	"fmt"
 
 	"battle/ecs"
-	"battle/internal/battle/buff/overlay"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 	"battle/internal/battle/log"

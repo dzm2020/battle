@@ -1,8 +1,8 @@
 package skill_effect
 
 import (
-	"battle/internal/battle/buff"
 	"battle/internal/battle/config"
+	"battle/internal/battle/system/buff"
 	"errors"
 )
 

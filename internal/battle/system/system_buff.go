@@ -2,11 +2,11 @@ package system
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/buff"
-	"battle/internal/battle/buff/buff_effect"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 	"battle/internal/battle/log"
+	"battle/internal/battle/system/buff"
+	"battle/internal/battle/system/buff/buff_effect"
 )
 
 type BuffSystem struct {

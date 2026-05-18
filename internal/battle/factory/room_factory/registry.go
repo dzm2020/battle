@@ -1,4 +1,4 @@
-package room_builder
+package room_factory
 
 import (
 	"battle/ecs"
@@ -41,7 +41,7 @@ func getBuilder(t int32) builder {
 	return defaultBuilder
 }
 
-func Build(spec *Spec) error {
+func Create(spec *Spec) error {
 	builder := getBuilder(spec.Desc.Type)
 	return builder(spec)
 }

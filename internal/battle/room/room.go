@@ -2,7 +2,7 @@ package room
 
 import (
 	"battle/internal/battle/config"
-	"battle/internal/battle/room/room_builder"
+	"battle/internal/battle/factory/room_factory"
 	"context"
 	"errors"
 	"sync"
@@ -31,7 +31,7 @@ var (
 )
 
 // CreateRoom 根据 dungeonId 加载副本配置，并按 [config.DungeonConfig.Type] 选择已注册的装配逻辑创建房间。
-func CreateRoom(dungeonId int32, spec *room_builder.Spec) (*Room, error) {
+func CreateRoom(dungeonId int32, spec *room_factory.Spec) (*Room, error) {
 	r := &Room{
 		id:    GetManager().NextID(),
 		tps:   60,
@@ -58,7 +58,7 @@ func CreateRoom(dungeonId int32, spec *room_builder.Spec) (*Room, error) {
 	spec.World = r.world
 	spec.Desc = desc
 	//  构建房间
-	if err = room_builder.Build(spec); err != nil {
+	if err = room_factory.Create(spec); err != nil {
 		return nil, err
 	}
 

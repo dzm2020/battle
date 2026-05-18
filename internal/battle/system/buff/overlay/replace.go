@@ -1,10 +1,10 @@
 package overlay
 
 import (
-	"battle/internal/battle/buff/buff_util"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 	"battle/internal/battle/log"
+	"battle/internal/battle/system/buff/buff_util"
 )
 
 func stackPolicyReplace(new *component.BuffInstance, desc *config.BuffConfig, bl *component.BuffList) bool {
