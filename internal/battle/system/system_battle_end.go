@@ -10,7 +10,7 @@ import (
 const BattleEndPayloadDraw = -1
 
 // BattleEndSystem 根据仍存活的阵营数判定战斗是否结束，并派发 [event.BattleEnd]。
-// 仅统计同时挂载 [component.Team] 与 [component.Health] 且 Current > 0 的实体（参战单位）。
+// 仅统计同时挂载 [component.Team] 与 [component.Attributes] 且 hp > 0 的实体（参战单位）。
 // IntPayload：获胜方 [component.Team].Side（0–255）；平局为 [BattleEndPayloadDraw]。
 //
 // 在 [Initialize] 时快照「开局」存活阵营数（须在本系统随 [AddCombatSystems] 注册前已放入参战实体，否则 openingSides 恒为 0）；

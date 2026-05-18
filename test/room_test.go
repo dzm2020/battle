@@ -50,9 +50,13 @@ func TestRoom(t *testing.T) {
 	}
 
 	w := r.World()
-	q := ecs.NewQuery[*component.Health](w)
+	q := ecs.NewQuery[*component.Attributes](w)
 	n := 0
-	q.ForEach(func(_ ecs.Entity, _ *component.Health) { n++ })
+	q.ForEach(func(_ ecs.Entity, a *component.Attributes) {
+		if component.AttrHPMax(a) > 0 {
+			n++
+		}
+	})
 	// 副本配置含 1 只怪物（Unit 模板 id=1）+ 玩家单位各 1 个实体
 	if n != 2 {
 		t.Fatalf("副本内应有 2 个带生命单位（1 玩家 + 1 怪），实际 %d", n)

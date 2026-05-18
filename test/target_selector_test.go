@@ -30,7 +30,8 @@ func newTargetTestWorld(t *testing.T) *ecs.World {
 	return w
 }
 
-// 带 [Health] + [Team] + 属性「hp」+ 可选 [Transform2D]；attrHP 供 property 筛选使用。
+// 带 [Team] + [Attributes]（hp 为唯一生命数据源）+ 可选 [Transform2D]。
+// hp 的 Current：默认 hpCur；当 attrHP != hpCur 时取 attrHP（属性筛选用例）。
 func spawnUnit(
 	w *ecs.World,
 	side component.SideType,
@@ -39,9 +40,12 @@ func spawnUnit(
 ) ecs.Entity {
 	e := w.CreateEntity()
 	w.AddComponent(e, &component.Team{Side: side})
-	w.AddComponent(e, &component.Health{Current: hpCur, Max: hpMax})
 	a := ecs.EnsureGetComponent[*component.Attributes](w, e)
-	component.AttrSetRange(a, config.AttrHp, attrHP, attrHP)
+	cur := hpCur
+	if attrHP != hpCur {
+		cur = attrHP
+	}
+	component.AttrSetRange(a, config.AttrHp, cur, hpMax)
 	if x != 0 || y != 0 {
 		w.AddComponent(e, &component.Transform2D{X: x, Y: y})
 	} else {
@@ -156,7 +160,7 @@ func TestTargetSelect(t *testing.T) {
 	t.Run("排序·当前生命升序取一", func(t *testing.T) {
 		w := newTargetTestWorld(t)
 		caster := spawnUnit(w, component.SideTypeRed, 100, 100, 100, 0, 0)
-		weaker := spawnUnit(w, component.SideTypeBlue, 30, 100, 50, 0, 0)
+		weaker := spawnUnit(w, component.SideTypeBlue, 30, 100, 30, 0, 0)
 		_ = spawnUnit(w, component.SideTypeBlue, 80, 100, 90, 0, 0)
 		got := target_selector.Select(w, caster, 14)
 		if len(got) != 1 || got[0] != weaker {
@@ -168,7 +172,7 @@ func TestTargetSelect(t *testing.T) {
 		w := newTargetTestWorld(t)
 		caster := spawnUnit(w, component.SideTypeRed, 100, 100, 100, 0, 0)
 		stronger := spawnUnit(w, component.SideTypeBlue, 90, 100, 90, 0, 0)
-		_ = spawnUnit(w, component.SideTypeBlue, 30, 100, 50, 0, 0)
+		_ = spawnUnit(w, component.SideTypeBlue, 30, 100, 30, 0, 0)
 		got := target_selector.Select(w, caster, 15)
 		if len(got) != 1 || got[0] != stronger {
 			t.Fatalf("期望当前生命最高者 got=%v want=%v", got, stronger)

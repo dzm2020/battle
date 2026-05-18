@@ -59,7 +59,23 @@ func AttrSetRange(a *Attributes, key config.AttributeType, current, max int) {
 	a.Base[key] = &Attribute{Current: current, Max: max}
 }
 
+// AttrMax 读取 Max；未登记键返回 0。
+func AttrMax(a *Attributes, key config.AttributeType) int {
+	if a == nil || a.Base == nil {
+		return 0
+	}
+	if x := a.Base[key]; x != nil {
+		return x.Max
+	}
+	return 0
+}
+
 // AttrHP 读取生命值 Current。
 func AttrHP(a *Attributes) int {
 	return AttrCurrent(a, config.AttrHp)
+}
+
+// AttrHPMax 读取生命值上限。
+func AttrHPMax(a *Attributes) int {
+	return AttrMax(a, config.AttrHp)
 }

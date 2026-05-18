@@ -16,12 +16,22 @@ func TransformXY(w *ecs.World, e ecs.Entity) (int, int, bool) {
 	return tr.X, tr.Y, true
 }
 
+// HealthCurrent 读取实体当前生命（来自 [component.Attributes] 的 hp，唯一数据源）。
 func HealthCurrent(w *ecs.World, e ecs.Entity) int {
-	h, ok := w.GetComponent(e, &component.Health{})
+	a, ok := w.GetComponent(e, &component.Attributes{})
 	if !ok {
 		return 0
 	}
-	return h.(*component.Health).Current
+	return component.AttrHP(a.(*component.Attributes))
+}
+
+// HealthMax 读取实体生命上限。
+func HealthMax(w *ecs.World, e ecs.Entity) int {
+	a, ok := w.GetComponent(e, &component.Attributes{})
+	if !ok {
+		return 0
+	}
+	return component.AttrHPMax(a.(*component.Attributes))
 }
 
 // CampRelation 两个实体阵营关系。

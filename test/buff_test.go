@@ -41,8 +41,8 @@ func testPlayerForBuff() *unit.Player {
 func findPlayerEntity(t *testing.T, w *ecs.World) ecs.Entity {
 	t.Helper()
 	var ent ecs.Entity
-	ecs.NewQuery[*component.Health](w).ForEach(func(e ecs.Entity, h *component.Health) {
-		if h.Current == 50 {
+	ecs.NewQuery[*component.Attributes](w).ForEach(func(e ecs.Entity, a *component.Attributes) {
+		if component.AttrHP(a) == 50 {
 			ent = e
 		}
 	})

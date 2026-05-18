@@ -30,11 +30,10 @@ func newSkillCombatWorld(t *testing.T) *ecs.World {
 	return w
 }
 
-// 施法者 / 目标：含 Team、Health、Attributes（含 hp、mana），用于校验与伤害结算。
-func spawnCombatUnit(w *ecs.World, side uint8, hp, mana int) ecs.Entity {
+// 施法者 / 目标：含 Team、Attributes（hp、mana 为唯一属性数据源）。
+func spawnCombatUnit(w *ecs.World, side component.SideType, hp, mana int) ecs.Entity {
 	e := w.CreateEntity()
 	w.AddComponent(e, &component.Team{Side: side})
-	w.AddComponent(e, &component.Health{Current: hp, Max: hp})
 	a := ecs.EnsureGetComponent[*component.Attributes](w, e)
 	component.AttrSetRange(a, config.AttrHp, hp, hp)
 	component.AttrSetRange(a, config.AttrMana, mana, mana)
@@ -43,11 +42,7 @@ func spawnCombatUnit(w *ecs.World, side uint8, hp, mana int) ecs.Entity {
 
 func healthCurrent(t *testing.T, w *ecs.World, e ecs.Entity) int {
 	t.Helper()
-	c, ok := w.GetComponent(e, &component.Health{})
-	if !ok {
-		t.Fatal("缺少 Health")
-	}
-	return c.(*component.Health).Current
+	return utils.HealthCurrent(w, e)
 }
 
 func manaCurrent(t *testing.T, w *ecs.World, e ecs.Entity) int {
@@ -89,8 +84,8 @@ func TestSkill(t *testing.T) {
 	t.Run("管线·真实伤害命中敌方", func(t *testing.T) {
 		w := newSkillCombatWorld(t)
 		system.AddCombatSystems(w)
-		caster := spawnCombatUnit(w, 0, 100, 100)
-		target := spawnCombatUnit(w, 1, 100, 0)
+		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
+		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
 		if !skill_effect.AddSkill(w, caster, 1) {
 			t.Fatal("AddSkill 失败")
 		}
@@ -105,8 +100,8 @@ func TestSkill(t *testing.T) {
 	t.Run("校验·冷却中拒绝再次释放", func(t *testing.T) {
 		w := newSkillCombatWorld(t)
 		system.AddCombatSystems(w)
-		caster := spawnCombatUnit(w, 0, 100, 100)
-		target := spawnCombatUnit(w, 1, 100, 0)
+		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
+		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
 		if !skill_effect.AddSkill(w, caster, 1) {
 			t.Fatal("AddSkill 失败")
 		}
@@ -124,8 +119,8 @@ func TestSkill(t *testing.T) {
 	t.Run("校验·眩晕无法施法", func(t *testing.T) {
 		w := newSkillCombatWorld(t)
 		system.AddCombatSystems(w)
-		caster := spawnCombatUnit(w, 0, 100, 100)
-		target := spawnCombatUnit(w, 1, 100, 0)
+		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
+		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
 		w.AddComponent(caster, &component.BuffControlState{Flags: component.FlagStunned})
 		if !skill_effect.AddSkill(w, caster, 1) {
 			t.Fatal("AddSkill 失败")
@@ -141,8 +136,8 @@ func TestSkill(t *testing.T) {
 	t.Run("校验·沉默无法施法", func(t *testing.T) {
 		w := newSkillCombatWorld(t)
 		system.AddCombatSystems(w)
-		caster := spawnCombatUnit(w, 0, 100, 100)
-		target := spawnCombatUnit(w, 1, 100, 0)
+		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
+		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
 		w.AddComponent(caster, &component.BuffControlState{Flags: component.FlagSilenced})
 		if !skill_effect.AddSkill(w, caster, 1) {
 			t.Fatal("AddSkill 失败")
@@ -158,8 +153,8 @@ func TestSkill(t *testing.T) {
 	t.Run("校验·未学会的技能请求被丢弃", func(t *testing.T) {
 		w := newSkillCombatWorld(t)
 		system.AddCombatSystems(w)
-		caster := spawnCombatUnit(w, 0, 100, 100)
-		target := spawnCombatUnit(w, 1, 100, 0)
+		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
+		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
 		castSkillRequest(w, caster, 1, target)
 		w.Update(dt)
 
@@ -171,8 +166,8 @@ func TestSkill(t *testing.T) {
 	t.Run("校验·法力不足", func(t *testing.T) {
 		w := newSkillCombatWorld(t)
 		system.AddCombatSystems(w)
-		caster := spawnCombatUnit(w, 0, 100, 30)
-		target := spawnCombatUnit(w, 1, 100, 0)
+		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 30)
+		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
 		if !skill_effect.AddSkill(w, caster, 3) {
 			t.Fatal("AddSkill 失败")
 		}
@@ -190,8 +185,8 @@ func TestSkill(t *testing.T) {
 	t.Run("校验·法力消耗成功", func(t *testing.T) {
 		w := newSkillCombatWorld(t)
 		system.AddCombatSystems(w)
-		caster := spawnCombatUnit(w, 0, 100, 100)
-		target := spawnCombatUnit(w, 1, 100, 0)
+		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
+		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
 		if !skill_effect.AddSkill(w, caster, 3) {
 			t.Fatal("AddSkill 失败")
 		}
@@ -209,8 +204,8 @@ func TestSkill(t *testing.T) {
 	t.Run("效果·对选取目标施加 Buff", func(t *testing.T) {
 		w := newSkillCombatWorld(t)
 		system.AddCombatSystems(w)
-		caster := spawnCombatUnit(w, 0, 100, 100)
-		target := spawnCombatUnit(w, 1, 100, 0)
+		caster := spawnCombatUnit(w, component.SideTypeRed, 100, 100)
+		target := spawnCombatUnit(w, component.SideTypeBlue, 100, 0)
 		if !skill_effect.AddSkill(w, caster, 2) {
 			t.Fatal("AddSkill 失败")
 		}

@@ -6,7 +6,7 @@ import (
 	"battle/internal/battle/config"
 )
 
-// HealSystem 消费 [PendingHeal]，直接增加 [Health].Current 并派发 [EventHealApplied]；在 [DamageSystem] 之后、
+// HealSystem 消费 [PendingHeal]，增加 [Attributes] 中 hp（唯一生命数据源）；在 [DamageSystem] 之后、
 // [HealthSystem] 之前运行，使同帧先扣血再治疗时治疗仍有效（与项目系统顺序一致时先伤后疗由注册顺序决定）。
 type HealSystem struct {
 	world *ecs.World
