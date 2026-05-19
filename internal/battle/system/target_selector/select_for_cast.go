@@ -3,7 +3,7 @@ package target_selector
 import (
 	"battle/ecs"
 	"battle/internal/battle/config"
-	"battle/internal/battle/system/target_selector/target_fliter"
+	"battle/internal/battle/system/target_selector/target_filter"
 )
 
 // SelectForCast 为技能效果解析目标列表。
@@ -42,8 +42,8 @@ func passesFilters(w *ecs.World, caster, target ecs.Entity, desc *config.TargetS
 	if target == caster && !desc.IncludeSelf {
 		return false
 	}
-	ctx := &target_fliter.Context{World: w, Caster: caster, Target: target}
-	return target_fliter.Apply(ctx, desc.Filters...)
+	ctx := &target_filter.Context{World: w, Caster: caster, Target: target}
+	return target_filter.Apply(ctx, desc.Filters...)
 }
 
 func ensurePrimaryFirst(primary ecs.Entity, selected []ecs.Entity, maxCount int) []ecs.Entity {

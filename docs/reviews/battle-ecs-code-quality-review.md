@@ -53,7 +53,8 @@ internal/battle/
 │   ├── room_bootstrap/     # Bootstrap = Installer + Spawner
 │   ├── entity_factory/     # 出生装配
 │   ├── buff/ skill/ target_selector/
-│   ├── action/ distance/ utils/
+│   ├── transform/ action/ distance/ combatmath/
+│   │   └── target_selector/target_filter/
 │   └── system_*.go         # 帧管线
 ├── pb/ event/ log/
 └── README.md
@@ -141,6 +142,7 @@ room_bootstrap ↛ system（Installer 由 system.init 注册）
 | `BattleState` | 已删除；`BattleEnd` 用运行时存活阵营建基线 |
 | 注释/文档陈旧 | 已批量对齐 `resource` / `room_bootstrap` |
 | `AddCombatSystems` | 保留为单测别名 → `AddSystems` |
+| 目录拆分收尾 | `transform` / `combatmath`；`target_filter` 更名；`distance.SquaredFromRef`；`test/` 对齐 API |
 
 ---
 
@@ -159,7 +161,7 @@ room_bootstrap ↛ system（Installer 由 system.init 注册）
 
 | 优先级 | 问题 |
 |--------|------|
-| **P0** | `test/` 编译失败，CI 若包含 `./test/...` 会红 |
+| ~~**P0**~~ | ~~`test/` 编译失败~~ → 已对齐 `room.Create` / `component.Register` |
 | **P1** | 战斗 System（伤害/校验/Buff）缺包内表驱动单测 |
 | **P2** | PVE/PVP 未挂差异化 System |
 | **P2** | `room` 与 `RoomPhase` Resource 的同步关系未在代码中完全体现 |
@@ -169,7 +171,7 @@ room_bootstrap ↛ system（Installer 由 system.init 注册）
 ```text
 go build ./internal/battle/...              → 通过
 go test  ./internal/battle/...              → 通过（land、target_selector 等）
-go test  ./test/...                         → 编译失败（API 过期）
+go test  ./test/...                         → 通过（需 battle_config 表）
 ```
 
 **建议 CI：**

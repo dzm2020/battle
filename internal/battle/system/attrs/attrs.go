@@ -1,4 +1,5 @@
 // Package attrs 提供对 [component.Attributes] 的读写辅助，以及基于 World 的属性/阵营查询。
+// 平面坐标见 [battle/internal/battle/system/transform]。
 //
 // 约定：运行时属性变更应在 System（或出生装配 entity_factory）中通过本包完成；
 // [component] 包仅定义数据结构，不包含修改逻辑。
@@ -88,16 +89,6 @@ func HP(a *component.Attributes) int {
 // HPMax 读取生命值上限。
 func HPMax(a *component.Attributes) int {
 	return Max(a, config.AttrHp)
-}
-
-// TransformXY 读取实体平面坐标。
-func TransformXY(w *ecs.World, e ecs.Entity) (int, int, bool) {
-	t, ok := w.GetComponent(e, &component.Transform2D{})
-	if !ok {
-		return 0, 0, false
-	}
-	tr := t.(*component.Transform2D)
-	return tr.X, tr.Y, true
 }
 
 // HealthCurrent 读取实体当前生命（来自 [component.Attributes] 的 hp，唯一数据源）。

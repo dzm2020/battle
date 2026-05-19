@@ -1,9 +1,9 @@
-package target_fliter
+package target_filter
 
 import (
 	"battle/internal/battle/config"
 	"battle/internal/battle/system/attrs"
-	"battle/internal/battle/system/utils"
+	"battle/internal/battle/system/combatmath"
 	"encoding/json"
 )
 
@@ -16,5 +16,5 @@ func attributeFilter(ctx *Context, f config.Filter) bool {
 	if !ok {
 		return false
 	}
-	return utils.CompareFloat64(cur, p.Op, p.Value)
+	return combatmath.CompareFloat64(cur, p.Op, p.Value)
 }

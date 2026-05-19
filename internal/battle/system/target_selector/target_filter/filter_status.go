@@ -1,4 +1,4 @@
-package target_fliter
+package target_filter
 
 import (
 	"battle/internal/battle/component"

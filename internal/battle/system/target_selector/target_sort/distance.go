@@ -6,8 +6,8 @@ import (
 )
 
 func compareDistanceSquared(w *ecs.World, ref, a, b ecs.Entity) int {
-	da := distance.FromRef(w, ref, a)
-	db := distance.FromRef(w, ref, b)
+	da := distance.SquaredFromRef(w, ref, a)
+	db := distance.SquaredFromRef(w, ref, b)
 	switch {
 	case da < db:
 		return -1

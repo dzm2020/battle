@@ -26,7 +26,7 @@ func battleConfigDirForTarget(t *testing.T) string {
 func newTargetTestWorld(t *testing.T) *ecs.World {
 	t.Helper()
 	w := event.NewCombatWorld(16)
-	component.Init(w)
+	component.Register(w)
 	return w
 }
 

@@ -5,20 +5,20 @@ import (
 	"math"
 
 	"battle/ecs"
-	"battle/internal/battle/system/attrs"
+	"battle/internal/battle/system/transform"
 )
 
-// FromRef 计算 ref 与 e 之间的欧氏距离。
-func FromRef(w *ecs.World, ref, e ecs.Entity) float64 {
-	rx, ry, rok := attrs.TransformXY(w, ref)
+// SquaredFromRef 计算 ref 与 e 之间欧氏距离的平方（无 Sqrt，适合排序比较）。
+func SquaredFromRef(w *ecs.World, ref, e ecs.Entity) float64 {
+	rx, ry, rok := transform.XY(w, ref)
 	if !rok {
 		rx, ry = 0, 0
 	}
-	x, y, ok := attrs.TransformXY(w, e)
+	x, y, ok := transform.XY(w, e)
 	if !ok {
 		return math.MaxFloat64
 	}
 	dx := float64(x - rx)
 	dy := float64(y - ry)
-	return math.Sqrt(dx*dx + dy*dy)
+	return dx*dx + dy*dy
 }

@@ -1,12 +1,11 @@
-// Package utils 提供战斗 System 共用的数值比较与换算常量。
-package utils
+// Package combatmath 提供战斗数值比较与千分比/百分比换算常量。
+package combatmath
 
 import (
 	"math"
 	"strings"
 )
 
-// 战斗数值换算：千分比（permille）、百分比分母等。
 const (
 	Thousand = 1000
 	Hundred  = 100

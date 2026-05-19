@@ -3,7 +3,7 @@ package target_selector
 import (
 	"battle/ecs"
 	"battle/internal/battle/config"
-	"battle/internal/battle/system/target_selector/target_fliter"
+	"battle/internal/battle/system/target_selector/target_filter"
 	"battle/internal/battle/system/target_selector/target_sort"
 )
 
@@ -25,8 +25,8 @@ func Select(w *ecs.World, caster ecs.Entity, selectDescID int32) []ecs.Entity {
 		if e == caster && !desc.IncludeSelf {
 			return
 		}
-		ctx := &target_fliter.Context{World: w, Caster: caster, Target: e}
-		if !target_fliter.Apply(ctx, desc.Filters...) {
+		ctx := &target_filter.Context{World: w, Caster: caster, Target: e}
+		if !target_filter.Apply(ctx, desc.Filters...) {
 			return
 		}
 		if _, ok := seen[e]; ok {

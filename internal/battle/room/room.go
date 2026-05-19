@@ -3,6 +3,7 @@ package room
 import (
 	"battle/ecs"
 	"battle/internal/battle/component"
+	"battle/internal/battle/config"
 	"battle/internal/battle/resource"
 	"battle/internal/battle/system"
 	"context"
@@ -10,8 +11,20 @@ import (
 	"time"
 )
 
-// Create 根据 dungeonId 加载副本配置，并按 [config.DungeonConfig.Type] 选择已注册的装配逻辑创建房间。
+// Create 根据 [resource.RoomSpec] 创建房间并启动战斗循环。
+// PVP 副本要求 spec.Enemy 非 nil，否则返回 [ErrUseCreatePVPRoom]。
 func Create(spec *resource.RoomSpec) (*Room, error) {
+	if spec == nil {
+		return nil, ErrInvalidRoomSpec
+	}
+	desc := config.GetDungeonConfigByID(spec.DungeonId)
+	if desc == nil {
+		return nil, ErrInvalidRoomSpec
+	}
+	if desc.Type == config.DungeonTypePVP && spec.Enemy == nil {
+		return nil, ErrUseCreatePVPRoom
+	}
+
 	w := ecs.NewWorld(100)
 	r := &Room{
 		id:    GetManager().NextID(),
@@ -54,10 +67,25 @@ func (r *Room) World() *ecs.World {
 	return r.world
 }
 
+// Phase 返回房间阶段（来自 World 内 [resource.RoomPhase]）。
+func (r *Room) Phase() resource.Phase {
+	if r == nil || r.world == nil {
+		return resource.PhaseClosed
+	}
+	p := ecs.GetResource[resource.RoomPhase](r.world)
+	if p == nil {
+		return resource.PhaseClosed
+	}
+	return p.Phase
+}
+
 // StartBattle 启动战斗循环协程；ctx 用于上层整体关服/撤房时取消。
 func (r *Room) StartBattle(ctx context.Context) error {
 	if r.cancel != nil {
 		return ErrWrongPhase
+	}
+	if p := ecs.GetResource[resource.RoomPhase](r.world); p != nil {
+		p.Phase = resource.PhaseFighting
 	}
 
 	loopCtx, cancel := context.WithCancel(ctx)

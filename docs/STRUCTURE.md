@@ -65,8 +65,8 @@ internal/battle/
 │   ├── room_bootstrap/     # Installer + Spawner，按副本入队刷怪
 │   ├── entity_factory/     # 从配置/PB 造实体
 │   ├── skill/ buff/ target_selector/ …
-│   ├── action/ distance/   # CanAct、实体间距离
-│   └── utils/              # 数值比较与换算常量
+│   ├── transform/ action/ distance/ combatmath/
+│   └── …                   # 坐标、行动判定、距离、数值常量
 ├── pb/                     # 与协议/存档对齐的 DTO
 ├── log/
 └── event/
@@ -78,8 +78,11 @@ internal/battle/
 - **`room`**：不 `import entity_factory`；首帧由 `BattleInitSystem` 调 `room_bootstrap.Bootstrap`。  
 - **`room_bootstrap`**：不 import 父包 `system`；Installer 由 `system.init` 注册。  
 - **`system/attrs`**：组件级读写 + World 级生命/阵营/最终属性查询。  
-- **`system/action`** / **`system/distance`**：行动判定与距离；依赖 `component` / `attrs`，不 import 父包 `system`。  
-- **`system/utils`**：数值比较与千分比常量；无 ECS 查询逻辑。
+- **`land`**（顶层）：地图格子索引；与 **`system/distance`**（实体坐标欧氏距离）职责不同。  
+- **`system/transform`**：读 `Transform2D`；**`system/distance`** 依赖 transform，不依赖 attrs。  
+- **`system/action`**：行动判定；依赖 `component`，不 import 父包 `system`。  
+- **`system/combatmath`**：千分比常量与 `CompareFloat64`；无 ECS 查询。  
+- **`target_selector/target_filter`**：目标筛选（原 `target_fliter` 已更名）。
 
 ---
 

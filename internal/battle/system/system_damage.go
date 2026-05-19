@@ -8,7 +8,7 @@ import (
 	"battle/internal/battle/config"
 	"battle/internal/battle/event"
 	"battle/internal/battle/system/attrs"
-	"battle/internal/battle/system/utils"
+	"battle/internal/battle/system/combatmath"
 	"math"
 	"math/rand/v2"
 )
@@ -66,10 +66,10 @@ func (s *DamageSystem) calDamage(w *ecs.World, target ecs.Entity, entry *compone
 	}
 	// 未配置命中/闪避时视为必中（测试与缺省单位）
 	if hit == 0 && dodge == 0 {
-		chance = utils.Thousand
+		chance = combatmath.Thousand
 	}
 	//  miss
-	if chance < utils.Thousand && int(rand.UintN(utils.Thousand)) > chance {
+	if chance < combatmath.Thousand && int(rand.UintN(combatmath.Thousand)) > chance {
 		s.world.EmitEvent(ecs.Event{
 			Kind: event.KindDamageMissed,
 			Payload: event.Payload{
@@ -81,10 +81,10 @@ func (s *DamageSystem) calDamage(w *ecs.World, target ecs.Entity, entry *compone
 	}
 	//  暴击伤害
 	crit := attrs.GetAttributeFinalValue(w, entry.Source, config.AttrCritRate)
-	if int(rand.UintN(utils.Thousand)) < crit {
+	if int(rand.UintN(combatmath.Thousand)) < crit {
 		bonus := attrs.GetAttributeFinalValue(w, entry.Source, config.AttrCritDamage)
-		mult := utils.Thousand + bonus
-		damage = int(math.Floor(float64(damage*mult) / utils.Thousand))
+		mult := combatmath.Thousand + bonus
+		damage = int(math.Floor(float64(damage*mult) / combatmath.Thousand))
 	}
 
 	if entry.Type == component.DamageTrue {
@@ -100,10 +100,10 @@ func (s *DamageSystem) calDamage(w *ecs.World, target ecs.Entity, entry *compone
 	default:
 		def = 0
 	}
-	denom := utils.Hundred + def
+	denom := combatmath.Hundred + def
 	if denom < 1 {
 		denom = 1
 	}
-	damage = int(math.Floor(float64(damage*utils.Hundred) / float64(denom)))
+	damage = int(math.Floor(float64(damage*combatmath.Hundred) / float64(denom)))
 	return damage
 }

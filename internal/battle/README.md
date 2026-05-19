@@ -16,9 +16,10 @@
 | `system/entity_factory` | 从单位表 / PB 创建实体与初始技能、Buff |
 | `system/attrs` | `Attributes` 读写与 World 级属性/阵营查询（生命、CampRelation、最终属性值等） |
 | `system/skill` / `buff` / `target_selector` | 战斗规则子域 |
+| `system/transform` | `Transform2D` 坐标读取（`XY`） |
 | `system/action` | 行动资格判定（`CanAct` 等） |
-| `system/distance` | 实体间平面距离（`FromRef`） |
-| `system/utils` | 数值比较与换算常量（`CompareFloat64`、`Thousand` 等） |
+| `system/distance` | 实体间平面距离平方（`SquaredFromRef`，用于排序） |
+| `system/combatmath` | 数值比较与换算常量（`CompareFloat64`、`Thousand` 等） |
 | `pb` | 与客户端/存档对齐的结构体 |
 | `log` / `event` | 日志与事件 |
 

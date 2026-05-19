@@ -10,10 +10,10 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
-	"battle/internal/battle/system/attrs"
 	"battle/internal/battle/pb"
+	"battle/internal/battle/resource"
 	"battle/internal/battle/room"
-	"battle/internal/battle/system/room_bootstrap"
+	"battle/internal/battle/system/attrs"
 )
 
 func battleConfigDirForRoom(t *testing.T) string {
@@ -42,19 +42,16 @@ func TestRoom(t *testing.T) {
 		},
 	}
 
-	r, err := room.CreateRoom(1, &room_bootstrap.Spec{Self: player})
+	r, err := room.Create(&resource.RoomSpec{DungeonId: 1, Self: player})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Phase() != room.PhaseFighting {
-		t.Fatalf("CreateRoom 已自动开战，期望 Fighting，实际 %v", r.Phase())
-	}
-	if r.Loop() == nil {
-		t.Fatal("Loop 不应为 nil")
+	if r.Phase() != resource.PhaseFighting {
+		t.Fatalf("Create 已自动开战，期望 Fighting，实际 %v", r.Phase())
 	}
 
 	w := r.World()
-	// 同步推进一帧，确保 SpawnSystem 消费入队请求
+	// 同步推进一帧，确保 BattleInitSystem + SpawnSystem 消费入队请求
 	w.Update(1.0 / 60.0)
 
 	q := ecs.NewQuery[*component.Attributes](w)
@@ -71,13 +68,14 @@ func TestRoom(t *testing.T) {
 	if err := r.StartBattle(context.Background()); !errors.Is(err, room.ErrWrongPhase) {
 		t.Fatalf("重复 StartBattle 应返回 ErrWrongPhase，实际 %v", err)
 	}
+	r.Shutdown()
 }
 
 func TestCreateRoom_RejectsPVPDungeonWithoutEnemy(t *testing.T) {
 	dir := battleConfigDirForRoom(t)
 	config.Load(dir)
 
-	_, err := room.CreateRoom(2, &room_bootstrap.Spec{Self: &pb.Player{ID: 1}})
+	_, err := room.Create(&resource.RoomSpec{DungeonId: 2, Self: &pb.Player{ID: 1}})
 	if !errors.Is(err, room.ErrUseCreatePVPRoom) {
 		t.Fatalf("PVP 副本缺少 Enemy 应返回 ErrUseCreatePVPRoom，实际 %v", err)
 	}
@@ -101,7 +99,7 @@ func TestCreatePVPRoom(t *testing.T) {
 		},
 	}
 
-	r, err := room.CreatePVPRoom(2, red, blue)
+	r, err := room.Create(&resource.RoomSpec{DungeonId: 2, Self: red, Enemy: blue})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,4 +118,5 @@ func TestCreatePVPRoom(t *testing.T) {
 	if nRed != 1 || nBlue != 1 {
 		t.Fatalf("PVP 双方单位各应带 Team 各 1，实际 red=%d blue=%d", nRed, nBlue)
 	}
+	r.Shutdown()
 }
