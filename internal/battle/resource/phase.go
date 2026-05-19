@@ -1,6 +1,8 @@
 package resource
 
-// Phase 房间当前阶段（仅服务端权威）；由 [Room] 在各 API 内直接维护 [Room.phase] 字段。
+import "battle/ecs"
+
+// Phase 房间当前阶段（服务端权威）；存于 World Resource [RoomPhase]。
 type Phase int8
 
 const (
@@ -13,4 +15,15 @@ const (
 
 type RoomPhase struct {
 	Phase Phase
+}
+
+// SetPhase 更新本局 [RoomPhase]；无 Resource 时无操作。
+func SetPhase(w *ecs.World, phase Phase) {
+	if w == nil {
+		return
+	}
+	p := ecs.GetResource[RoomPhase](w)
+	if p != nil {
+		p.Phase = phase
+	}
 }

@@ -100,6 +100,7 @@ func (r *Room) StartBattle(ctx context.Context) error {
 }
 
 func (r *Room) runLoop(ctx context.Context) {
+	phaseRes := ecs.GetResource[resource.RoomPhase](r.world)
 	tpsRes := ecs.GetResource[resource.TPS](r.world)
 	if tpsRes == nil {
 		return
@@ -128,7 +129,7 @@ func (r *Room) runLoop(ctx context.Context) {
 
 	resetTicker(tpsRes)
 
-	for {
+	for phaseRes.Phase == resource.PhaseFighting {
 		select {
 		case <-ctx.Done():
 			return
@@ -139,7 +140,10 @@ func (r *Room) runLoop(ctx context.Context) {
 			}
 			resetTicker(tpsRes)
 
-			r.world.Update(tpsRes.DeltaTime())
+			r.world.ForeachSystem(tpsRes.DeltaTime(), func(s ecs.System) bool {
+				s.Update(tpsRes.DeltaTime())
+				return phaseRes.Phase == resource.PhaseFighting
+			})
 			tpsRes.Frame++
 		}
 	}
@@ -148,6 +152,7 @@ func (r *Room) runLoop(ctx context.Context) {
 func (r *Room) destroy() {
 	w := r.world
 	if w != nil {
+		resource.SetPhase(w, resource.PhaseClosed)
 		w.RemoveAllEntities()
 	}
 	r.cancel = nil

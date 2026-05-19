@@ -6,7 +6,9 @@ import (
 )
 
 func TestConfigLoad(t *testing.T) {
-	config.Load("./battle_config")
+	if err := config.Load("./battle_config"); err != nil {
+		t.Fatal(err)
+	}
 
 	tab := config.Tab
 	if tab == nil {

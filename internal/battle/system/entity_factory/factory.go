@@ -18,10 +18,11 @@ import (
 
 // Spec 出生装配参数：属性、初始技能/Buff、额外组件。
 type Spec struct {
-	Attributes map[config.AttributeType]*component.Attribute
-	Abilities  []int32
-	BuffDefIDs []uint32
-	Components []ecs.Component
+	Attributes   map[config.AttributeType]*component.Attribute
+	ResourceRegen map[config.AttributeType]int // 战斗资源每帧恢复；空则 ResourceSystem 对法力使用默认值
+	Abilities    []int32
+	BuffDefIDs   []uint32
+	Components   []ecs.Component
 }
 
 // Create 按 Spec 创建实体并完成初始装配；失败时回滚删除实体。
@@ -32,6 +33,9 @@ func Create(w *ecs.World, spec Spec) (ecs.Entity, error) {
 	e := w.CreateEntity()
 	attrs := ecs.EnsureGetComponent[*component.Attributes](w, e)
 	attrs.Base = spec.Attributes
+	if len(spec.ResourceRegen) > 0 {
+		w.AddComponent(e, &component.ResourceRegen{PerFrame: spec.ResourceRegen})
+	}
 	if err := attachInitialLoadout(w, e, spec.Abilities, spec.BuffDefIDs); err != nil {
 		w.RemoveEntity(e)
 		return 0, err

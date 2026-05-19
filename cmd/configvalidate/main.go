@@ -1,4 +1,4 @@
-// Command configvalidate 读取目录下 buffs.json / skills.json / units.json 并做交叉引用校验。
+// Command configvalidate 读取目录下战斗 JSON 配表并做加载校验。
 package main
 
 import (
@@ -13,6 +13,9 @@ func main() {
 	if len(os.Args) >= 2 {
 		dir = os.Args[1]
 	}
-	config.Load(dir)
+	if err := config.Load(dir); err != nil {
+		fmt.Fprintf(os.Stderr, "config load failed: %v\n", err)
+		os.Exit(1)
+	}
 	fmt.Println("ok")
 }

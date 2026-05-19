@@ -12,7 +12,7 @@ battleDemo/
 ├── docs/                   # 所有人可读：架构、评审、ADR、接入说明
 │   ├── STRUCTURE.md        # 本文件：路径与结构约定
 │   ├── adr/                # 架构决策记录（一条决策一篇，长期不变更语义）
-│   ├── reviews/            # 阶段性代码质量/安全评审（可按日期或版本命名）
+│   ├── reviews/            # 评审（战斗 ECS：[battle-ecs-code-quality-review.md](reviews/battle-ecs-code-quality-review.md)）
 │   ├── guides/             # 操作手册：如何配表、如何开房间、如何跑测
 │   └── examples/           # 若有：示例配置片段（与 test 数据区分）
 ├── internal/               # 应用私有代码，不对外作为 library API 承诺
@@ -64,7 +64,7 @@ internal/battle/
 ├── system/                 # ECS Systems；顺序见 register.AddCoreCombatSystems
 │   ├── room_bootstrap/     # Installer + Spawner，按副本入队刷怪
 │   ├── entity_factory/     # 从配置/PB 造实体
-│   ├── skill/ buff/ target_selector/ …
+│   ├── skill/ buff/ target_selector/ AttributeSystem …
 │   ├── transform/ action/ distance/ combatmath/
 │   └── …                   # 坐标、行动判定、距离、数值常量
 ├── pb/                     # 与协议/存档对齐的 DTO
@@ -82,7 +82,9 @@ internal/battle/
 - **`system/transform`**：读 `Transform2D`；**`system/distance`** 依赖 transform，不依赖 attrs。  
 - **`system/action`**：行动判定；依赖 `component`，不 import 父包 `system`。  
 - **`system/combatmath`**：千分比常量与 `CompareFloat64`；无 ECS 查询。  
-- **`target_selector/target_filter`**：目标筛选（原 `target_fliter` 已更名）。
+- **`target_selector/target_filter`**：目标筛选（原 `target_fliter` 已更名）。  
+- **配表**：`config.Load` 返回 `error`；`MustLoad` 用于启动/单测。  
+- **阶段**：`resource.SetPhase`；战斗结束 `Settled`，房间销毁 `Closed`。
 
 ---
 

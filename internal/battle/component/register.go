@@ -16,6 +16,9 @@ func RegisterCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&DamageQueue{})
 	r.Register(&ResolvedDamage{})
 	r.Register(&Attributes{})
+	r.Register(&FinalAttributes{})
+	r.Register(&ResourceRegen{})
+	r.Register(&ResourceConsumeQueue{})
 	r.Register(&BuffList{}) // Buff 运行时列表（内含 BuffInstance 缓冲）
 	r.Register(&BuffStatModifiers{})
 	r.Register(&BuffControlState{})
@@ -25,4 +28,5 @@ func RegisterCombatTypes(r *ecs.ComponentRegistry) {
 	r.Register(&SkillCastRequest{})
 	r.Register(&SkillCastState{})
 	r.Register(&PendingHeal{})
+	r.Register(&Player{})
 }

@@ -168,6 +168,14 @@ func (w *World) Update(dt float64) {
 	}
 }
 
+func (w *World) ForeachSystem(dt float64, f func(s System) bool) {
+	for _, s := range w.systems {
+		if !f(s) {
+			break
+		}
+	}
+}
+
 // EmitEvent 派发业务自定义事件（与实体生命周期事件共用同一套订阅）。
 func (w *World) EmitEvent(e Event) {
 	w.events.emit(e)

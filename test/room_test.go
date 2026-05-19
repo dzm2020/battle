@@ -27,7 +27,7 @@ func battleConfigDirForRoom(t *testing.T) string {
 
 func TestRoom(t *testing.T) {
 	dir := battleConfigDirForRoom(t)
-	config.Load(dir)
+	config.MustLoad(dir)
 
 	player := &pb.Player{
 		ID: 1,
@@ -73,7 +73,7 @@ func TestRoom(t *testing.T) {
 
 func TestCreateRoom_RejectsPVPDungeonWithoutEnemy(t *testing.T) {
 	dir := battleConfigDirForRoom(t)
-	config.Load(dir)
+	config.MustLoad(dir)
 
 	_, err := room.Create(&resource.RoomSpec{DungeonId: 2, Self: &pb.Player{ID: 1}})
 	if !errors.Is(err, room.ErrUseCreatePVPRoom) {
@@ -83,7 +83,7 @@ func TestCreateRoom_RejectsPVPDungeonWithoutEnemy(t *testing.T) {
 
 func TestCreatePVPRoom(t *testing.T) {
 	dir := battleConfigDirForRoom(t)
-	config.Load(dir)
+	config.MustLoad(dir)
 
 	unitStats := []pb.Attribute{{Type: config.AttrHp, InitValue: 50, MaxValue: 50}}
 	red := &pb.Player{

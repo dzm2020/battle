@@ -64,13 +64,18 @@ func (s *CastValidationSystem) Update(dt float64) {
 		}
 
 		resourceKey, cost := skillCfg.ConsumeType, skillCfg.ConsumeValue
-		if cost > 0 {
-			if attrs.Current(attr, resourceKey) < cost {
+		if cost > 0 && config.IsCombatResource(resourceKey) {
+			if !attrs.CanAfford(attr, resourceKey, cost) {
 				s.world.RemoveComponent(e, &component.SkillCastRequest{})
 				return
 			}
-			//  扣除资源
-			attrs.Add(attr, resourceKey, -cost)
+			attrs.EnqueueConsume(s.world, e, resourceKey, cost)
+		} else if cost > 0 {
+			if !attrs.CanAfford(attr, resourceKey, cost) {
+				s.world.RemoveComponent(e, &component.SkillCastRequest{})
+				return
+			}
+			attrs.ApplyConsume(attr, resourceKey, cost)
 		}
 
 		s.world.RemoveComponent(e, &component.SkillCastRequest{})

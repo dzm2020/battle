@@ -8,8 +8,10 @@ import (
 func AddCoreCombatSystems(w *ecs.World) {
 	w.AddSystem(&SpawnSystem{})
 	w.AddSystem(&BuffSystem{})
+	w.AddSystem(&AttributeSystem{})
 	w.AddSystem(&CooldownSystem{})
 	w.AddSystem(&CastValidationSystem{})
+	w.AddSystem(&ResourceSystem{})
 	w.AddSystem(&CastStateSystem{})
 	w.AddSystem(&DamageSystem{})
 	w.AddSystem(&HealSystem{})
@@ -18,14 +20,16 @@ func AddCoreCombatSystems(w *ecs.World) {
 	w.AddSystem(&BattleEndSystem{})
 }
 
-// AddPVESystems 注册 PVE 副本战斗管线；可在通用管线之上追加 PVE 专用 System。
+// AddPVESystems 注册 PVE 副本战斗管线；在通用管线之后挂 [PVERulesSystem]。
 func AddPVESystems(w *ecs.World) {
 	AddCoreCombatSystems(w)
+	w.AddSystem(&PVERulesSystem{})
 }
 
-// AddPVPSystems 注册 PVP 副本战斗管线；可在通用管线之上追加 PVP 专用 System。
+// AddPVPSystems 注册 PVP 副本战斗管线；在通用管线之后挂 [PVPRulesSystem]。
 func AddPVPSystems(w *ecs.World) {
 	AddCoreCombatSystems(w)
+	w.AddSystem(&PVPRulesSystem{})
 }
 
 // AddSystems 注册单测用完整管线：含 [BattleInitSystem] 与 [AddCoreCombatSystems]。

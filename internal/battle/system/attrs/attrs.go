@@ -1,8 +1,8 @@
-// Package attrs 提供对 [component.Attributes] 的读写辅助，以及基于 World 的属性/阵营查询。
-// 平面坐标见 [battle/internal/battle/system/transform]。
+// Package attrs 提供对 [component.Attributes] 的读写辅助、最终属性 [Recompute]/[Final]，以及 World 级查询。
+// 平面坐标见 [battle/internal/battle/system/transform]；最终属性表由 [system.AttributeSystem] 每帧写入 [component.FinalAttributes]。
 //
-// 约定：运行时属性变更应在 System（或出生装配 entity_factory）中通过本包完成；
-// [component] 包仅定义数据结构，不包含修改逻辑。
+// 约定：基础属性变更在 System 或 entity_factory 中通过本包完成；Buff 修正由 Buff 写入 [component.BuffStatModifiers]，
+// 再由 AttributeSystem 合并为 FinalAttributes。
 package attrs
 
 import (
@@ -143,18 +143,3 @@ func GetEntityAttributeValue(w *ecs.World, e ecs.Entity, name string) (float64, 
 	return 0, false
 }
 
-// GetAttributeFinalValue 读取属性 Current 与 Buff 修正后的最终值。
-func GetAttributeFinalValue(w *ecs.World, e ecs.Entity, typ config.AttributeType) int {
-	var value int
-	if a, ok := w.GetComponent(e, &component.Attributes{}); ok {
-		attr := a.(*component.Attributes)
-		if Current(attr, typ) > 0 {
-			value = Current(attr, typ)
-		}
-		if sm, ok := w.GetComponent(e, &component.BuffStatModifiers{}); ok {
-			modifier := sm.(*component.BuffStatModifiers)
-			value += int(modifier.Modifiers[typ])
-		}
-	}
-	return value
-}

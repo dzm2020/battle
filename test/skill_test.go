@@ -75,7 +75,7 @@ func castSkillRequest(w *ecs.World, caster ecs.Entity, skillID int32, target ecs
 // TestSkill 覆盖：释放前校验、目标选取（见 SkillEffect 与 TargetSelect 表）、效果生效（伤害 / 加 Buff）。
 func TestSkill(t *testing.T) {
 	dir := battleConfigDirForSkill(t)
-	config.Load(dir)
+	config.MustLoad(dir)
 	dt := 1.0 / 60.0
 
 	t.Run("管线·真实伤害命中敌方", func(t *testing.T) {

@@ -74,7 +74,7 @@ func sameEntitySet(t *testing.T, got, want []ecs.Entity) {
 
 func TestTargetSelect(t *testing.T) {
 	dir := battleConfigDirForTarget(t)
-	config.Load(dir)
+	config.MustLoad(dir)
 
 	t.Run("空或非法入参", func(t *testing.T) {
 		var w *ecs.World

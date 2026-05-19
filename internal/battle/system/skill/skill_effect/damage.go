@@ -30,7 +30,7 @@ func handleDamage(ctx *Context, desc *config.SkillEffectConfig) error {
 		}
 	}
 
-	q := ecs.EnsureGetComponent[*component.DamageQueue](ctx.Word, ctx.Target)
+	q := ecs.EnsureGetComponent[*component.DamageQueue](ctx.World, ctx.Target)
 	component.DamageQueueAppend(q, &component.PendingDamage{
 		Source:    ctx.Caster,
 		RawDamage: float64(amt),

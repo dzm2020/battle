@@ -9,7 +9,7 @@ import (
 )
 
 type Context struct {
-	Word           *ecs.World
+	World          *ecs.World
 	Caster, Target ecs.Entity
 	EffectId       int32
 }
@@ -21,7 +21,7 @@ var (
 )
 
 func Apply(ctx *Context) error {
-	w := ctx.Word
+	w := ctx.World
 	target := ctx.Target
 	if w == nil || target == 0 || !w.EntityExists(target) {
 		return fmt.Errorf("entity not exists")

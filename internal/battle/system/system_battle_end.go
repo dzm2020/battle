@@ -4,59 +4,55 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/event"
+	"battle/internal/battle/resource"
 	"battle/internal/battle/system/attrs"
 )
 
 // BattleEndPayloadDraw 全员阵亡 / 同归于尽时 battle end 事件的 [event.Payload].IntPayload 取值。
 const BattleEndPayloadDraw = -1
 
-// BattleEndSystem 根据仍存活的阵营数判定战斗是否结束，并派发 [event.BattleEnd]。
-// 仅统计同时挂载 [component.Team] 与 [component.Attributes] 且 hp > 0 的实体（参战单位）。
-// IntPayload：获胜方 [component.Team].Side（0–255）；平局为 [BattleEndPayloadDraw]。
+// BattleEndSystem 订阅 [event.KindDeath]，统计仍存活（[component.Team] + hp>0）的阵营数；
+// 若 <= 1 则战斗结束并设置 [resource.PhaseSettled]。
 //
-// 首帧在存在存活参战单位时，用当前存活阵营数建立基线（避免刷怪完成前误判）。
-//
-// 须注册在 [DeathSystem] 之后（见 [AddCoreCombatSystems]），以便死亡实体已从世界移除后再统计。
+// 须在 [DeathSystem] 之后注册（死亡事件在移除实体前派发，本 System 在回调中统计剩余单位）。
 type BattleEndSystem struct {
-	world        *ecs.World
-	q            *ecs.Query2[*component.Team, *component.Attributes]
-	done      bool
-	prevSides int // -1 未建立基线；之后为上一帧结算后的存活阵营数
+	world      *ecs.World
+	q          *ecs.Query2[*component.Team, *component.Attributes]
+	done       bool
+	deathUnsub func()
 }
 
 func (s *BattleEndSystem) Initialize(w *ecs.World) {
 	s.world = w
 	s.q = ecs.NewQuery2[*component.Team, *component.Attributes](w)
-	s.prevSides = -1
+	s.deathUnsub = w.Subscribe(event.KindDeath, func(ecs.Event) {
+		s.onDeath()
+	})
 }
 
-func (s *BattleEndSystem) Update(dt float64) {
-	if s.done {
+func (s *BattleEndSystem) Update(_ float64) {}
+
+func (s *BattleEndSystem) onDeath() {
+	if s.done || s.world == nil || s.q == nil {
 		return
 	}
-
 	currSides, winningSide := countAliveSides(s.q)
-
-	if s.prevSides < 0 {
-		if currSides == 0 {
-			return // 等待 SpawnSystem 刷出参战单位后再建立基线
-		}
-		s.prevSides = currSides
+	if currSides > 1 {
 		return
 	}
-
-	switch {
-	case currSides == 0 && s.prevSides > 0:
+	if currSides == 0 {
 		s.finish(BattleEndPayloadDraw)
-	case s.prevSides >= 2 && currSides == 1:
-		s.finish(sideToBattleEndPayload(winningSide))
-	default:
-		s.prevSides = currSides
+		return
 	}
+	s.finish(sideToBattleEndPayload(winningSide))
 }
 
 func (s *BattleEndSystem) finish(winnerPayload int) {
+	if s.done {
+		return
+	}
 	s.done = true
+	resource.SetPhase(s.world, resource.PhaseSettled)
 	s.world.EmitEvent(ecs.Event{
 		Kind:    event.KindBattleEnd,
 		Payload: event.Payload{IntPayload: winnerPayload},

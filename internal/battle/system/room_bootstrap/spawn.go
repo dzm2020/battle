@@ -39,6 +39,7 @@ func spawnDungeonMonsters(w *ecs.World, spec *resource.RoomSpec, side component.
 }
 
 // spawnPlayerUnits 将单个 [pb.Player] 的战斗单位入队；player 为 nil 时跳过。
+// 先创建带 [component.Player] 的编队实体，刷怪时写入 Player.Units 映射。
 func spawnPlayerUnits(w *ecs.World, player *pb.Player, side component.SideType) error {
 	if player == nil {
 		return nil
@@ -47,6 +48,13 @@ func spawnPlayerUnits(w *ecs.World, player *pb.Player, side component.SideType) 
 	if !ok || grid == nil {
 		return errors.New("room_bootstrap: grid not initialized")
 	}
+
+	teamEntity := w.CreateEntity()
+	w.AddComponent(teamEntity, &component.Player{
+		ID:    player.ID,
+		Base:  player.Base,
+		Units: make(map[uint32]ecs.Entity),
+	})
 
 	for _, unit := range player.Units {
 		if unit == nil {
@@ -57,11 +65,12 @@ func spawnPlayerUnits(w *ecs.World, player *pb.Player, side component.SideType) 
 			return errors.New("room_bootstrap: failed to pick cell for player unit")
 		}
 		if err := resource.EnqueueSpawn(w, &resource.SpawnRequest{
-			UnitID: int32(unit.ID),
-			Side:   side,
-			CellX:  cellX,
-			CellY:  cellY,
-			Data:   unit,
+			UnitID:     int32(unit.ID),
+			Side:       side,
+			CellX:      cellX,
+			CellY:      cellY,
+			TeamEntity: teamEntity,
+			Data:       unit,
 		}); err != nil {
 			return err
 		}

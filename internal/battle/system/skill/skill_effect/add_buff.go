@@ -14,5 +14,5 @@ func handleAddBuff(ctx *Context, desc *config.SkillEffectConfig) error {
 	}
 	buffID := uint32(desc.IntParams[0])
 
-	return buff.Add(ctx.Word, ctx.Caster, ctx.Target, buffID)
+	return buff.Add(ctx.World, ctx.Caster, ctx.Target, buffID)
 }

@@ -18,7 +18,9 @@ func loadTargetConfig(t *testing.T) {
 		t.Fatal("runtime.Caller failed")
 	}
 	dir := filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "test", "battle_config"))
-	config.Load(dir)
+	if err := config.Load(dir); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func spawnUnit(w *ecs.World, side component.SideType, hpCur, hpMax int) ecs.Entity {

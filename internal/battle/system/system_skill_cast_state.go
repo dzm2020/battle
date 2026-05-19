@@ -83,7 +83,7 @@ func (s *CastStateSystem) ApplyEffects(caster ecs.Entity, state *component.Skill
 		targets := target_selector.SelectForCast(w, caster, castTarget, int32(effectDesc.TargetSelectID))
 		for _, t := range targets {
 			ctx := &skill_effect.Context{
-				Word:     w,
+				World:    w,
 				Caster:   caster,
 				Target:   t,
 				EffectId: int32(effectDesc.EffectID),
