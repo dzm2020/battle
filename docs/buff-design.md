@@ -95,11 +95,14 @@
 
 ## 6. 与战斗系统、合并伤害
 
-### 6.1 系统顺序（`system.AddCombatSystems`）
+### 6.1 系统顺序（`system.AddCoreCombatSystems`）
 
 ```
-BuffSystem → CooldownSystem → SkillSystem → DamageSystem → HealthSystem → DeathSystem
+SpawnSystem → BuffSystem → CooldownSystem → CastValidationSystem → CastStateSystem
+→ DamageSystem → HealSystem → HealthSystem → DeathSystem → BattleEndSystem
 ```
+
+（`BattleInitSystem` 由 `room.Create` 单独挂载；单测可用 `system.AddCombatSystems` 一次注册全部。）
 
 （技能框架见 [skill-design.md](./skill-design.md)。）
 
@@ -125,7 +128,7 @@ BuffSystem → CooldownSystem → SkillSystem → DamageSystem → HealthSystem 
 
 1. `component.RegisterCombatTypesWorld(w)`（或等价地向 ECS `Registry` 注册战斗相关组件类型）。
 2. 构造 `buff.DefinitionConfig`，注册或通过 JSON 加载全部 `DescriptorConfig`；若使用技能，再构造 `skill.CatalogConfig` 并加载技能表（见 [skill-design.md](./skill-design.md)）。
-3. `system.AddCombatSystems(w, buffConfig, skillConfig)`；无技能时可传 `nil` 使用空技能表。
+3. `system.AddCombatSystems(w)` 或 `AddCoreCombatSystems(w)`（见 [register.go](../internal/battle/system/register.go)）。
 4. 对实体 `ApplyBuff` / 添加 `Health`、`Attributes` 等；每帧调用 `world.Update(dt)`。
 
 ---

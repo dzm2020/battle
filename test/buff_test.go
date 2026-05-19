@@ -8,6 +8,7 @@ import (
 	"battle/ecs"
 
 	"battle/internal/battle/component"
+	"battle/internal/battle/system/attrs"
 	"battle/internal/battle/config"
 	"battle/internal/battle/pb"
 )
@@ -41,7 +42,7 @@ func findPlayerEntity(t *testing.T, w *ecs.World) ecs.Entity {
 	t.Helper()
 	var ent ecs.Entity
 	ecs.NewQuery[*component.Attributes](w).ForEach(func(e ecs.Entity, a *component.Attributes) {
-		if component.AttrHP(a) == 50 {
+		if attrs.HP(a) == 50 {
 			ent = e
 		}
 	})

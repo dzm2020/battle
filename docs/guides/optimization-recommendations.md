@@ -45,7 +45,7 @@
 | **二选一** | A）`Room` 只持有 `*room.Grid`，`SetGrid` 只接 `*land.Grid` 并在内部 `NewGrid`；B）删除 `room/grid.go` 包装，全部 `*land.Grid` + 独立 `placement` 小函数。 |
 | **写 ADR** | 在 `docs/adr/` 记录最终选择与迁移步骤，避免再次分叉。 |
 
-**验收**：`Room` / `room_builder` / `spawn` 路径上仅一种网格访问风格。
+**验收**：`Room` / `room_bootstrap` / `SpawnSystem` 路径上仅一种网格访问风格。
 
 ### 2.2 配置加载与校验
 
@@ -70,7 +70,7 @@
 
 | 建议 | 说明 |
 |------|------|
-| **包内 `*_test.go` 优先** | `entity_factory`、`room_builder`、`system` 中单系统表驱动测试。 |
+| **包内 `*_test.go` 优先** | `entity_factory`、`room_bootstrap`、`system` 中单系统表驱动测试。 |
 | **减轻 `test/` 整包耦合** | 集成测试独立 package 或标签 `//go:build integration`，避免单文件损坏阻塞全部测试。 |
 | **黄金配置最小集** | `test/battle_config` 保持最小可加载表；与 `docs/examples` 职责划分写进 `STRUCTURE.md`。 |
 

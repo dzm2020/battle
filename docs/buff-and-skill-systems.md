@@ -64,16 +64,18 @@
 
 ### 技能效果（`skill_effect`）
 
-- `ApplySkillEffects`：按技能配置的 **EffectIDs** 顺序，对每个效果取 **`SkillEffectConfig`**，用 **`target_selector.Select`** 得到目标列表，再按 `EffectType` 分发。
+- `CastStateSystem.ApplyEffects`：按 **EffectIDs** 顺序，用 **`target_selector.SelectForCast`**（点选目标优先）解析目标列表，再按 `EffectType` 分发。
 - 已实现示例：**伤害** → `MergePendingDamage`（交给 `DamageSystem`）；**加 Buff** → `EmitEvent(KindAddBuffRequest)`，由 **Buff 系统**订阅并 `AddBuff`。
 
 ---
 
-## 三、整体战斗帧顺序（`AddCombatSystems`）
+## 三、整体战斗帧顺序（`AddCoreCombatSystems`）
 
 注册顺序为：
 
-**Buff → 技能 CD → 施法校验 → 施法阶段推进 → 伤害 → 治疗 → 扣血 → 死亡 → 战斗结束**
+**刷怪 → Buff → 技能 CD → 施法校验 → 施法阶段推进 → 伤害 → 治疗 → 扣血 → 死亡 → 战斗结束**
+
+（开房首帧：`BattleInitSystem` → `room_bootstrap.Bootstrap` 挂载上述 System 并入队刷怪。）
 
 同一帧内：**Buff 先更新**（含周期效果、属性汇总），再 **减技能 CD**，再 **处理施法请求**，再 **推进施法状态并在生效阶段打出伤害/加 Buff**，之后才进入 **Damage / Heal / Health** 等。
 

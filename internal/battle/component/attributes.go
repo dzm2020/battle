@@ -8,7 +8,7 @@ type Attribute struct {
 	Max     int
 }
 
-// Attributes 实体属性表；读写请用 [AttrCurrent]、[AttrAdd] 等包级函数，勿在组件上挂方法。
+// Attributes 实体属性表（纯数据）。运行时读写见 [battle/internal/battle/system/attrs]。
 type Attributes struct {
 	Base map[config.AttributeType]*Attribute
 }

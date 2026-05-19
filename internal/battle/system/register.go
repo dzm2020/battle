@@ -27,3 +27,15 @@ func AddPVESystems(w *ecs.World) {
 func AddPVPSystems(w *ecs.World) {
 	AddCoreCombatSystems(w)
 }
+
+// AddSystems 注册单测用完整管线：含 [BattleInitSystem] 与 [AddCoreCombatSystems]。
+// 正式开房时 [BattleInitSystem] 仅由 [room.Create] 挂载，战斗 System 由 [room_bootstrap.Installer] 在首帧注册。
+func AddSystems(w *ecs.World) {
+	w.AddSystem(&BattleInitSystem{})
+	AddCoreCombatSystems(w)
+}
+
+// AddCombatSystems 为 [AddSystems] 的别名（历史命名，单测沿用）。
+func AddCombatSystems(w *ecs.World) {
+	AddSystems(w)
+}

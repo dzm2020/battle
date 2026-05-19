@@ -2,7 +2,6 @@ package system
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 	"battle/internal/battle/land"
 	"battle/internal/battle/resource"
@@ -16,23 +15,25 @@ func init() {
 	room_bootstrap.RegisterInstaller(config.DungeonTypePVP, AddPVPSystems)
 }
 
-// BattleInitSystem 在 [SpawnSystem] 消费完 [runtime.BattleContext].SpawnQueue 后完成单局开战初始化：
-// 快照开局存活阵营数、标记 [runtime.BattleContext].Started，并派发 [event.KindBattleStart]。
+// BattleInitSystem 在首帧（[resource.TPS].Frame == 0）创建网格、Bootstrap 并按副本挂载战斗 System。
+// Bootstrap 入队后立即 [FlushSpawnQueue]，使单位在同帧生成（新 System 尚不参与当次 World.Update 遍历）。
 //
-// 须注册在 [SpawnSystem] 之后、[BuffSystem] 之前（见 [AddSystems]），以便首帧刷怪完成后再进入战斗管线。
+// 由 [room.Create] 单独注册，不包含在 [AddCoreCombatSystems] 内。
 type BattleInitSystem struct {
-	world *ecs.World
-	q     *ecs.Query2[*component.Team, *component.Attributes]
+	world       *ecs.World
+	initialized bool
 }
 
 func (s *BattleInitSystem) Initialize(w *ecs.World) {
 	s.world = w
-	s.q = ecs.NewQuery2[*component.Team, *component.Attributes](w)
 }
 
 func (s *BattleInitSystem) Update(_ float64) {
+	if s.initialized {
+		return
+	}
 	tps := ecs.GetResource[resource.TPS](s.world)
-	if tps == nil || tps.Frame == 0 {
+	if tps == nil || tps.Frame != 0 {
 		return
 	}
 
@@ -53,9 +54,9 @@ func (s *BattleInitSystem) Update(_ float64) {
 
 	ecs.AddResource(s.world, grid)
 
-	//  构建房间
 	if err = room_bootstrap.Bootstrap(s.world, spec); err != nil {
 		return
 	}
-
+	FlushSpawnQueue(s.world)
+	s.initialized = true
 }

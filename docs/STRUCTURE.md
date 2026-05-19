@@ -58,12 +58,13 @@ internal/battle/
 ├── config/                 # 表结构与 Load；长期可加 loader 接口与校验子包
 ├── ecs/                    # 若仅 battle 使用可保持现状；与根 ecs/ 二选一见 ADR
 ├── component/              # 纯组件定义与 Register
-├── entity_factory/         # 从配置/PB 造实体；不写格子策略
+├── resource/               # 局内 World 资源（TPS、刷怪队列、RoomSpec 等）
 ├── land/                   # 纯空间索引；不依赖 room
-├── room/                   # 房间生命周期、阶段、与 World 同线程的 API
-├── room_builder/           # 进房装配、副本类型分发；依赖 config + room + entity_factory
-├── system/                 # ECS Systems；依赖顺序在 register 中显式化
-├── skill/ / buff/ / target_selector/ …
+├── room/                   # 房间生命周期、runLoop、room.Create
+├── system/                 # ECS Systems；顺序见 register.AddCoreCombatSystems
+│   ├── room_bootstrap/     # Installer + Spawner，按副本入队刷怪
+│   ├── entity_factory/     # 从配置/PB 造实体
+│   └── skill/ buff/ target_selector/ …
 ├── utils/                  # 建议逐步瘦身：与 component 类型强耦合的进同包或 component 旁 helper
 ├── pb/                     # 与协议/存档对齐的 DTO
 ├── log/
@@ -73,8 +74,8 @@ internal/battle/
 **边界原则（写入团队规范即可）：**
 
 - **`land`**：不知道 `Room`、`pb.Player`。  
-- **`room`**：不 `import entity_factory`（落点用 `PlaceOnGrid` 等薄 API；造怪在 `room_builder`）。  
-- **`room_builder`**：唯一组装「表 + factory + grid」的场所之一（另一条可以是未来的 `spawn` 子包）。  
+- **`room`**：不 `import entity_factory`；首帧由 `BattleInitSystem` 调 `room_bootstrap.Bootstrap`。  
+- **`room_bootstrap`**：不 import 父包 `system`；Installer 由 `system.init` 注册。  
 - **`utils`**：仅放与 ECS 无环或弱耦合的纯函数；否则易与 `component` 类型漂移。
 
 ---

@@ -80,12 +80,14 @@
 
 ---
 
-## 8. 系统注册顺序（[`AddCombatSystems`](/internal/battle/system/register.go)）
+## 8. 系统注册顺序（[`AddCoreCombatSystems`](/internal/battle/system/register.go)）
 
 ```
-Buff → Cooldown → SkillChannel → SkillIntent
-→ Damage → Heal → CombatLog → Threat → Health → Death
+Spawn → Buff → Cooldown → CastValidation → CastState
+→ Damage → Heal → Health → Death → BattleEnd
 ```
+
+单测别名：`AddCombatSystems` = `BattleInitSystem` + `AddCoreCombatSystems`。
 
 ---
 

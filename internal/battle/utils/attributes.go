@@ -4,6 +4,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/system/attrs"
 	"strings"
 )
 
@@ -22,7 +23,7 @@ func HealthCurrent(w *ecs.World, e ecs.Entity) int {
 	if !ok {
 		return 0
 	}
-	return component.AttrHP(a.(*component.Attributes))
+	return attrs.HP(a.(*component.Attributes))
 }
 
 // HealthMax 读取实体生命上限。
@@ -31,7 +32,7 @@ func HealthMax(w *ecs.World, e ecs.Entity) int {
 	if !ok {
 		return 0
 	}
-	return component.AttrHPMax(a.(*component.Attributes))
+	return attrs.HPMax(a.(*component.Attributes))
 }
 
 // CampRelation 两个实体阵营关系。
@@ -62,7 +63,7 @@ func GetEntityCamp(w *ecs.World, e ecs.Entity) (component.SideType, bool) {
 func GetEntityAttributeValue(w *ecs.World, e ecs.Entity, name string) (float64, bool) {
 	key := config.AttributeType(strings.ToLower(strings.TrimSpace(name)))
 	if a, ok := w.GetComponent(e, &component.Attributes{}); ok {
-		return float64(component.AttrCurrent(a.(*component.Attributes), key)), true
+		return float64(attrs.Current(a.(*component.Attributes), key)), true
 	}
 	return 0, false
 }
@@ -71,8 +72,8 @@ func GetAttributeFinalValue(w *ecs.World, e ecs.Entity, typ config.AttributeType
 	var value int
 	if a, ok := w.GetComponent(e, &component.Attributes{}); ok {
 		attr := a.(*component.Attributes)
-		if component.AttrCurrent(attr, typ) > 0 {
-			value = component.AttrCurrent(attr, typ)
+		if attrs.Current(attr, typ) > 0 {
+			value = attrs.Current(attr, typ)
 		}
 		if sm, ok := w.GetComponent(e, &component.BuffStatModifiers{}); ok {
 			modifier := sm.(*component.BuffStatModifiers)

@@ -10,6 +10,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/system/attrs"
 	"battle/internal/battle/pb"
 	"battle/internal/battle/room"
 	"battle/internal/battle/system/room_bootstrap"
@@ -59,7 +60,7 @@ func TestRoom(t *testing.T) {
 	q := ecs.NewQuery[*component.Attributes](w)
 	n := 0
 	q.ForEach(func(_ ecs.Entity, a *component.Attributes) {
-		if component.AttrHPMax(a) > 0 {
+		if attrs.HPMax(a) > 0 {
 			n++
 		}
 	})

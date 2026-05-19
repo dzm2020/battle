@@ -10,6 +10,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/system/attrs"
 	"battle/internal/battle/event"
 	"battle/internal/battle/system"
 )
@@ -35,8 +36,8 @@ func spawnCombatUnit(w *ecs.World, side component.SideType, hp, mana int) ecs.En
 	e := w.CreateEntity()
 	w.AddComponent(e, &component.Team{Side: side})
 	a := ecs.EnsureGetComponent[*component.Attributes](w, e)
-	component.AttrSetRange(a, config.AttrHp, hp, hp)
-	component.AttrSetRange(a, config.AttrMana, mana, mana)
+	attrs.SetRange(a, config.AttrHp, hp, hp)
+	attrs.SetRange(a, config.AttrMana, mana, mana)
 	return e
 }
 
@@ -51,7 +52,7 @@ func manaCurrent(t *testing.T, w *ecs.World, e ecs.Entity) int {
 	if !ok {
 		t.Fatal("缺少 Attributes")
 	}
-	return component.AttrCurrent(a.(*component.Attributes), config.AttrMana)
+	return attrs.Current(a.(*component.Attributes), config.AttrMana)
 }
 
 func hasBuff(w *ecs.World, e ecs.Entity, buffID uint32) bool {

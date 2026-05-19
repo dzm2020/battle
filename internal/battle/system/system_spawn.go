@@ -9,7 +9,7 @@ import (
 	"battle/internal/battle/system/entity_factory"
 )
 
-// SpawnSystem 消费 [runtime.BattleContext].SpawnQueue，按请求创建单位并登记到 Grid。
+// SpawnSystem 消费 [resource.SpawnRequestQueue]，按请求创建单位并登记到 [land.Grid]。
 type SpawnSystem struct {
 	world *ecs.World
 }
@@ -19,13 +19,30 @@ func (s *SpawnSystem) Initialize(w *ecs.World) {
 }
 
 func (s *SpawnSystem) Update(_ float64) {
-	grid, _ := resource.Grid(s.world)
+	if s.world != nil {
+		FlushSpawnQueue(s.world)
+	}
+}
 
-	queue, _ := resource.SpawnQueue(s.world)
+// FlushSpawnQueue 消费 [resource.SpawnRequestQueue] 中当前可完成的请求。
+// [BattleInitSystem] 在 Bootstrap 入队后于同帧调用，避免新注册的 [SpawnSystem] 等到下一帧才执行。
+func FlushSpawnQueue(w *ecs.World) {
+	if w == nil {
+		return
+	}
+	grid, ok := resource.Grid(w)
+	if !ok || grid == nil {
+		return
+	}
+	queue, ok := resource.SpawnQueue(w)
+	if !ok || queue == nil {
+		return
+	}
 
+	consumer := &SpawnSystem{world: w}
 	var pending []*resource.SpawnRequest
 	for _, request := range queue.Queue {
-		if s.fulfill(grid, request) {
+		if consumer.fulfill(grid, request) {
 			continue
 		}
 		pending = append(pending, request)

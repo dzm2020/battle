@@ -4,6 +4,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/system/attrs"
 	"battle/internal/battle/utils"
 )
 
@@ -23,8 +24,8 @@ func (s *CastValidationSystem) Update(dt float64) {
 		return
 	}
 
-	s.q.ForEach(func(e ecs.Entity, set *component.SkillSet, attrs *component.Attributes, req *component.SkillCastRequest) {
-		if req == nil || set == nil || attrs == nil {
+	s.q.ForEach(func(e ecs.Entity, set *component.SkillSet, attr *component.Attributes, req *component.SkillCastRequest) {
+		if req == nil || set == nil || attr == nil {
 			s.world.RemoveComponent(e, &component.SkillCastRequest{})
 			return
 		}
@@ -64,12 +65,12 @@ func (s *CastValidationSystem) Update(dt float64) {
 
 		resourceKey, cost := skillCfg.ConsumeType, skillCfg.ConsumeValue
 		if cost > 0 {
-			if component.AttrCurrent(attrs, resourceKey) < cost {
+			if attrs.Current(attr, resourceKey) < cost {
 				s.world.RemoveComponent(e, &component.SkillCastRequest{})
 				return
 			}
 			//  扣除资源
-			component.AttrAdd(attrs, resourceKey, -cost)
+			attrs.Add(attr, resourceKey, -cost)
 		}
 
 		s.world.RemoveComponent(e, &component.SkillCastRequest{})

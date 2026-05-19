@@ -199,20 +199,20 @@ SpawnSystem写的还是不错的
 
 #### 房间创建在做什么
 
-- 新建 `ecs.World`、加载副本表、建 `land.Grid`、注入 `runtime.BattleContext`、走 `room_builder` 入队刷怪、注册战斗 System、启动 tick。
+- 新建 `ecs.World`、`component.Register`、注入 `resource`（`RoomSpec`、`TPS`、`SpawnRequestQueue` 等）、`room.Create` 挂 `BattleInitSystem` 并启动 `runLoop`；首帧 `BattleInitSystem` 建 `land.Grid` 并 `room_bootstrap.Bootstrap`（Installer 挂 System + Spawner 入队）。
 - 这是 0→1 的装配/开房，不是「遍历带某组件的实体」。
 
 这类逻辑在业界通常放在：
 
 | 层级                | 职责                             | 你们仓库里                |
 | :------------------ | :------------------------------- | :------------------------ |
-| Room / room_builder | 开房、阶段、表 + 网格 + 初始入队 | `CreateRoom`、`Build`     |
+| Room / room_bootstrap | 开房、runLoop、首帧 Bootstrap | `room.Create`、`Bootstrap` |
 | entity_factory      | 单个战斗实体出生装配             | `CreateByConfigID` 等     |
 | System              | 帧内规则与队列消费               | `SpawnSystem`、伤害/治疗… |
 
 把整段开房塞进一个叫 `RoomCreateSystem` 的 `Update`，既不符合 Query 模型，也容易和「每帧调用一次」的语义拧在一起。
 
-## 什么时候才值得「像 System」
+####  什么时候才值得「像 System」
 
 只有当你把开房步骤也拆成 World 内的数据 + 单帧/多帧管线时，才接近 System，例如：
 
@@ -221,16 +221,31 @@ SpawnSystem写的还是不错的
 
 那是「进房后的单位生成用 ECS 管线」，不是「CreateRoom 本身要变成 System」。
 
-## 建议约定（写在文档里即可）
+####  建议约定（写在文档里即可）
 
-Room.CreateRoom / room_builder  →  局生命周期（非 System）
+room.Create + BattleInitSystem  →  局生命周期（非战斗帧 System 管线的一部分）
 
-runtime.Install + component.Init →  World 级单例
+ecs.AddResource + component.Register →  World 级单例
 
-room_builder 只 EnqueueSpawn     →  不在 builder 里直接 factory（可选收紧）
+room_bootstrap：Installer 挂 System，Spawner 只 EnqueueSpawn →  不在 Spawner 里直接 factory
 
-SpawnSystem                      →  帧内 ECS 消费刷怪队列
+SpawnSystem                      →  帧内 ECS 消费 [resource.SpawnRequestQueue]
 
-结论： ECS 规范并不要求房间创建做成 System；房间 = 容器 + 资源 + 阶段机，战斗实体与规则 = World + System。保持 `CreateRoom` 在 `room`/`room_builder`，把「刷单位」统一交给 `SpawnSystem` + `entity_factory`，就符合 ECS 分工。
+结论： ECS 规范并不要求房间创建做成 System；房间 = 容器 + 资源 + 阶段机，战斗实体与规则 = World + System。`room.Create` 负责容器与首帧 Bootstrap，刷单位统一由 `SpawnSystem` + `entity_factory` 完成。
 
-若你希望开房也完全帧驱动（例如大厅多帧渐进加载），可以说一下目标，我可以按现有 `BattleContext`/`SpawnQueue` 画一版具体拆分步骤。
+
+
+
+
+
+
+
+
+完成  结算逻辑  房间销毁
+
+
+
+
+
+
+

@@ -10,6 +10,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/system/attrs"
 	"battle/internal/battle/event"
 )
 
@@ -44,7 +45,7 @@ func spawnUnit(
 	if attrHP != hpCur {
 		cur = attrHP
 	}
-	component.AttrSetRange(a, config.AttrHp, cur, hpMax)
+	attrs.SetRange(a, config.AttrHp, cur, hpMax)
 	if x != 0 || y != 0 {
 		w.AddComponent(e, &component.Transform2D{X: x, Y: y})
 	} else {
@@ -176,6 +177,33 @@ func TestTargetSelect(t *testing.T) {
 		if len(got) != 1 || got[0] != stronger {
 			t.Fatalf("期望当前生命最高者 got=%v want=%v", got, stronger)
 		}
+	})
+
+	t.Run("SelectForCast·点选优先于表排序", func(t *testing.T) {
+		w := newTargetTestWorld(t)
+		caster := spawnUnit(w, component.SideTypeRed, 100, 100, 100, 0, 0)
+		weaker := spawnUnit(w, component.SideTypeBlue, 30, 100, 30, 0, 0)
+		stronger := spawnUnit(w, component.SideTypeBlue, 90, 100, 90, 0, 0)
+		// 表 15：生命降序取 1 → 会选 stronger
+		if got := target_selector.Select(w, caster, 15); len(got) != 1 || got[0] != stronger {
+			t.Fatalf("表选应偏向高生命单位 got=%v want=%v", got, stronger)
+		}
+		got := target_selector.SelectForCast(w, caster, weaker, 15)
+		if len(got) != 1 || got[0] != weaker {
+			t.Fatalf("点选应覆盖表排序 got=%v want=%v", got, weaker)
+		}
+	})
+
+	t.Run("SelectForCast·多目标时点选置顶", func(t *testing.T) {
+		w := newTargetTestWorld(t)
+		caster := spawnUnit(w, component.SideTypeRed, 100, 100, 100, 0, 0)
+		e1 := spawnUnit(w, component.SideTypeBlue, 50, 50, 50, 5, 0)
+		e2 := spawnUnit(w, component.SideTypeBlue, 50, 50, 50, 8, 0)
+		got := target_selector.SelectForCast(w, caster, e2, 10)
+		if len(got) < 2 || got[0] != e2 {
+			t.Fatalf("多目标时点选单位应排在首位 got=%v want head=%v", got, e2)
+		}
+		sameEntitySet(t, got, []ecs.Entity{e2, e1})
 	})
 
 	t.Run("排序·距施法者最近", func(t *testing.T) {

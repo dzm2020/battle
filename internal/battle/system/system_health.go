@@ -4,6 +4,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/system/attrs"
 )
 
 // HealthSystem 消费 [ResolvedDamage]，从 [Attributes] 的 hp 扣减（唯一生命数据源），然后移除 [ResolvedDamage]。
@@ -23,7 +24,7 @@ func (s *HealthSystem) Update(dt float64) {
 			s.world.RemoveComponent(e, &component.ResolvedDamage{})
 			return
 		}
-		component.AttrSub(attr, config.AttrHp, rd.Amount)
+		attrs.Sub(attr, config.AttrHp, rd.Amount)
 		s.world.RemoveComponent(e, &component.ResolvedDamage{})
 	})
 }

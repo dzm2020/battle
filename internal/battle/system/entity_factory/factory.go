@@ -3,7 +3,7 @@
 // 边界约定：
 //   - 本包是战斗内「出生装配」的唯一入口；允许在 System 外执行 CreateEntity 与初始 skill/buff 挂载。
 //   - 运行时施法、战斗中获得 Buff 等由 system / skill / buff 处理，不应再调用本包。
-//   - 空间落点（格子）由 room_builder / SpawnSystem + land.Grid 负责，本包不处理坐标。
+//   - 空间落点（格子）由 room_bootstrap / SpawnSystem + land.Grid 负责，本包不处理坐标。
 package entity_factory
 
 import (

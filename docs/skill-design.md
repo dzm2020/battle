@@ -94,8 +94,8 @@ SpawnSystem → BuffSystem → CooldownSystem → CastValidationSystem → CastS
 
 ## 6. API 使用流程（玩法层）
 
-1. `component.Init` / `RegisterCombatTypesWorld`  
-2. 加载技能表 → `system.AddCombatSystems`  
+1. `component.Register(w)`  
+2. 加载技能表 → 单测可用 `system.AddCombatSystems(w)`（含 `BattleInitSystem`）；正式开房由 `room_bootstrap` 挂战斗 System  
 3. 创建单位并挂 `SkillSet`  
 4. **`component.RequestSkillCast(world, caster, skillID, target)`**（唯一施法入口）  
 5. `world.Update(dt)` 驱动管线  

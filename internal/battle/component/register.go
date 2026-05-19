@@ -2,7 +2,7 @@ package component
 
 import "battle/ecs"
 
-// Register 注册战斗组件类型；局内资源请用 [system/runtime.Install] 注入 [runtime.BattleContext]。
+// Register 注册战斗组件类型；局内资源（网格、刷怪队列、TPS 等）由 [room] 或单测通过 ecs.AddResource 注入。
 func Register(w *ecs.World) {
 	RegisterCombatTypes(w.Registry())
 }

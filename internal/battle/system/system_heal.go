@@ -4,6 +4,7 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/system/attrs"
 )
 
 // HealSystem 消费 [PendingHeal]，增加 [Attributes] 中 hp（唯一生命数据源）；在 [DamageSystem] 之后、
@@ -23,12 +24,12 @@ func (s *HealSystem) Update(dt float64) {
 		if ph.Amount <= 0 {
 			return
 		}
-		hp := component.AttrCurrent(attr, config.AttrHp)
+		hp := attrs.Current(attr, config.AttrHp)
 		//  死亡就别治疗了
 		if hp <= 0 {
 			return
 		}
-		component.AttrAdd(attr, config.AttrHp, ph.Amount)
+		attrs.Add(attr, config.AttrHp, ph.Amount)
 
 		s.world.RemoveComponent(e, &component.PendingHeal{})
 	})

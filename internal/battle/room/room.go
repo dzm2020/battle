@@ -21,6 +21,7 @@ func Create(spec *resource.RoomSpec) (*Room, error) {
 	component.Register(r.world)
 
 	w.AddSystem(&system.BattleInitSystem{})
+	w.AddSystem(&system.SpawnSystem{})
 
 	ecs.AddResource(w, &resource.RoomID{ID: r.id})
 	ecs.AddResource(w, &resource.RoomPhase{Phase: resource.PhaseLobby})

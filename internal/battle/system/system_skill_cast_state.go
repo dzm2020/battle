@@ -44,7 +44,7 @@ func (s *CastStateSystem) Update(dt float64) {
 			state.Phase = component.SkillStagePostCast
 			fallthrough
 		case component.SkillStagePostCast:
-			s.ApplyEffects(e, state.SkillId)
+			s.ApplyEffects(e, state)
 			//  切换到后摇阶段
 			cd := config.SkillAfterCastFrames(state.SkillId)
 			state.Phase = component.SkillStageAfterCast
@@ -63,25 +63,24 @@ func (s *CastStateSystem) Update(dt float64) {
 	})
 }
 
-func (s *CastStateSystem) ApplyEffects(caster ecs.Entity, skillID int) {
+func (s *CastStateSystem) ApplyEffects(caster ecs.Entity, state *component.SkillCastState) {
 	w := s.world
-	if w == nil || caster == 0 || !w.EntityExists(caster) {
+	if w == nil || caster == 0 || !w.EntityExists(caster) || state == nil {
 		return
 	}
 
-	desc := config.GetSkillConfigByID(int32(skillID))
-
+	desc := config.GetSkillConfigByID(int32(state.SkillId))
 	if desc == nil {
 		return
 	}
+
+	castTarget := state.TargetEntity
 	for _, eid := range desc.EffectIDs {
 		effectDesc := config.GetSkillEffectConfigByID(int32(eid))
 		if effectDesc == nil {
 			continue
 		}
-		//  选取目标
-		targets := target_selector.Select(w, caster, int32(effectDesc.TargetSelectID))
-		//  执行效果
+		targets := target_selector.SelectForCast(w, caster, castTarget, int32(effectDesc.TargetSelectID))
 		for _, t := range targets {
 			ctx := &skill_effect.Context{
 				Word:     w,
