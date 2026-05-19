@@ -7,7 +7,8 @@ import (
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 	"battle/internal/battle/event"
-	"battle/internal/battle/utils"
+	"battle/internal/battle/system/attrs"
+	"battle/internal/battle/system/utils"
 	"math"
 	"math/rand/v2"
 )
@@ -57,8 +58,8 @@ func (s *DamageSystem) calDamage(w *ecs.World, target ecs.Entity, entry *compone
 	if damage <= 0 {
 		return 0
 	}
-	hit := utils.GetAttributeFinalValue(w, entry.Source, config.AttrHitPermille)
-	dodge := utils.GetAttributeFinalValue(w, target, config.AttrDodgePermille)
+	hit := attrs.GetAttributeFinalValue(w, entry.Source, config.AttrHitPermille)
+	dodge := attrs.GetAttributeFinalValue(w, target, config.AttrDodgePermille)
 	chance := hit - dodge
 	if chance < 0 {
 		chance = 0
@@ -79,9 +80,9 @@ func (s *DamageSystem) calDamage(w *ecs.World, target ecs.Entity, entry *compone
 		return 0
 	}
 	//  暴击伤害
-	crit := utils.GetAttributeFinalValue(w, entry.Source, config.AttrCritRate)
+	crit := attrs.GetAttributeFinalValue(w, entry.Source, config.AttrCritRate)
 	if int(rand.UintN(utils.Thousand)) < crit {
-		bonus := utils.GetAttributeFinalValue(w, entry.Source, config.AttrCritDamage)
+		bonus := attrs.GetAttributeFinalValue(w, entry.Source, config.AttrCritDamage)
 		mult := utils.Thousand + bonus
 		damage = int(math.Floor(float64(damage*mult) / utils.Thousand))
 	}
@@ -93,9 +94,9 @@ func (s *DamageSystem) calDamage(w *ecs.World, target ecs.Entity, entry *compone
 	def := 0
 	switch entry.Type {
 	case component.DamagePhysical:
-		def = utils.GetAttributeFinalValue(w, target, config.AttrArmor)
+		def = attrs.GetAttributeFinalValue(w, target, config.AttrArmor)
 	case component.DamageMagic:
-		def = utils.GetAttributeFinalValue(w, target, config.AttrMagicResist)
+		def = attrs.GetAttributeFinalValue(w, target, config.AttrMagicResist)
 	default:
 		def = 0
 	}

@@ -1,3 +1,4 @@
+// Package utils 提供战斗 System 共用的数值比较与换算常量。
 package utils
 
 import (

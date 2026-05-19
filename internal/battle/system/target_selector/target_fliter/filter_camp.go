@@ -2,7 +2,7 @@ package target_fliter
 
 import (
 	"battle/internal/battle/config"
-	"battle/internal/battle/utils"
+	"battle/internal/battle/system/attrs"
 	"encoding/json"
 )
 
@@ -14,7 +14,7 @@ func campFilter(ctx *Context, f config.Filter) bool {
 	if len(p.AllowedCamps) == 0 {
 		return true
 	}
-	rel := utils.CampRelation(ctx.World, ctx.Caster, ctx.Target)
+	rel := attrs.CampRelation(ctx.World, ctx.Caster, ctx.Target)
 	for _, c := range p.AllowedCamps {
 		if c == rel {
 			return true

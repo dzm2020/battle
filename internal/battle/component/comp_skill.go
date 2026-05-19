@@ -4,7 +4,7 @@ import "battle/ecs"
 
 // SkillCastRequest 施法请求（玩法层写入的唯一入口）。
 // 由 [system.CastValidationSystem] 在本帧校验；通过后移除并写入 [SkillCastState]。
-// 写入请使用 [SetSkillCastRequest] 或 [RequestSkillCast]。
+// 写入请使用 [battle/internal/battle/system/skill.SetSkillCastRequest] 或 [skill.RequestSkillCast]。
 type SkillCastRequest struct {
 	SkillID      int32   // 技能配置 ID（与 [RuntimeSkill].ConfigID / 技能表一致）
 	TargetEntity ecs.Entity // 主目标；无目标技能可为 0

@@ -1,10 +1,13 @@
-// Package attrs 提供对 [component.Attributes] 的读写辅助。
+// Package attrs 提供对 [component.Attributes] 的读写辅助，以及基于 World 的属性/阵营查询。
 //
 // 约定：运行时属性变更应在 System（或出生装配 entity_factory）中通过本包完成；
 // [component] 包仅定义数据结构，不包含修改逻辑。
 package attrs
 
 import (
+	"strings"
+
+	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
 )
@@ -85,4 +88,82 @@ func HP(a *component.Attributes) int {
 // HPMax 读取生命值上限。
 func HPMax(a *component.Attributes) int {
 	return Max(a, config.AttrHp)
+}
+
+// TransformXY 读取实体平面坐标。
+func TransformXY(w *ecs.World, e ecs.Entity) (int, int, bool) {
+	t, ok := w.GetComponent(e, &component.Transform2D{})
+	if !ok {
+		return 0, 0, false
+	}
+	tr := t.(*component.Transform2D)
+	return tr.X, tr.Y, true
+}
+
+// HealthCurrent 读取实体当前生命（来自 [component.Attributes] 的 hp，唯一数据源）。
+func HealthCurrent(w *ecs.World, e ecs.Entity) int {
+	a, ok := w.GetComponent(e, &component.Attributes{})
+	if !ok {
+		return 0
+	}
+	return HP(a.(*component.Attributes))
+}
+
+// HealthMax 读取实体生命上限。
+func HealthMax(w *ecs.World, e ecs.Entity) int {
+	a, ok := w.GetComponent(e, &component.Attributes{})
+	if !ok {
+		return 0
+	}
+	return HPMax(a.(*component.Attributes))
+}
+
+// CampRelation 两个实体阵营关系。
+func CampRelation(w *ecs.World, caster, target ecs.Entity) config.Camp {
+	if target == caster {
+		return config.CampFriend
+	}
+	cs, cOK := GetEntityCamp(w, caster)
+	ts, tOK := GetEntityCamp(w, target)
+	if !cOK || !tOK {
+		return config.CampNeutral
+	}
+	if ts == cs {
+		return config.CampFriend
+	}
+	return config.CampEnemy
+}
+
+// GetEntityCamp 返回实体阵营。
+func GetEntityCamp(w *ecs.World, e ecs.Entity) (component.SideType, bool) {
+	c, exists := w.GetComponent(e, &component.Team{})
+	if !exists {
+		return "", false
+	}
+	return c.(*component.Team).Side, true
+}
+
+// GetEntityAttributeValue 按属性名（不区分大小写）读取 Current。
+func GetEntityAttributeValue(w *ecs.World, e ecs.Entity, name string) (float64, bool) {
+	key := config.AttributeType(strings.ToLower(strings.TrimSpace(name)))
+	if a, ok := w.GetComponent(e, &component.Attributes{}); ok {
+		return float64(Current(a.(*component.Attributes), key)), true
+	}
+	return 0, false
+}
+
+// GetAttributeFinalValue 读取属性 Current 与 Buff 修正后的最终值。
+func GetAttributeFinalValue(w *ecs.World, e ecs.Entity, typ config.AttributeType) int {
+	var value int
+	if a, ok := w.GetComponent(e, &component.Attributes{}); ok {
+		attr := a.(*component.Attributes)
+		if Current(attr, typ) > 0 {
+			value = Current(attr, typ)
+		}
+		if sm, ok := w.GetComponent(e, &component.BuffStatModifiers{}); ok {
+			modifier := sm.(*component.BuffStatModifiers)
+			value += int(modifier.Modifiers[typ])
+		}
+	}
+	return value
 }

@@ -2,7 +2,8 @@ package target_fliter
 
 import (
 	"battle/internal/battle/config"
-	"battle/internal/battle/utils"
+	"battle/internal/battle/system/attrs"
+	"battle/internal/battle/system/utils"
 	"encoding/json"
 )
 
@@ -11,7 +12,7 @@ func attributeFilter(ctx *Context, f config.Filter) bool {
 	if err := json.Unmarshal(f.Params, &p); err != nil {
 		return false
 	}
-	cur, ok := utils.GetEntityAttributeValue(ctx.World, ctx.Target, p.Property)
+	cur, ok := attrs.GetEntityAttributeValue(ctx.World, ctx.Target, p.Property)
 	if !ok {
 		return false
 	}

@@ -49,7 +49,7 @@
 ### 核心数据
 
 - `SkillSet` / `RuntimeSkill`：`ConfigID`、`CurrentCooldown`（帧）。
-- `SkillCastRequest`：**施法唯一入口**（玩法层用 `component.RequestSkillCast` / `SetSkillCastRequest` 写入；含 `SkillID`、`TargetEntity` 等）。已移除 `CastIntent`。
+- `SkillCastRequest`：**施法唯一入口**（玩法层用 `skill.RequestSkillCast` / `skill.SetSkillCastRequest` 写入；含 `SkillID`、`TargetEntity` 等）。已移除 `CastIntent`。
 - `SkillCastState`：`Phase`、`RemainingFrames`、`SkillId`、目标与位置等。
 
 ### 辅助 API
@@ -161,4 +161,4 @@ sequenceDiagram
 | 施法校验 | `internal/battle/system/skill/system_skill_validation.go` |
 | 施法阶段 | `internal/battle/system/skill/system_skill_cast_state.go` |
 | 技能效果注册 | `internal/battle/system/skill/skill_effect/registry.go` |
-| 技能组件定义 | `internal/battle/component/skill.go` |
+| 技能组件定义 | `internal/battle/component/comp_skill.go` |

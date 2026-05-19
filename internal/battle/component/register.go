@@ -1,3 +1,7 @@
+// Package component 定义战斗 ECS 组件（纯数据）。
+//
+// 组件类型文件统一使用 comp_ 前缀，例如 comp_attributes.go、comp_skill.go。
+// register.go 为组件注册入口，不使用 comp_ 前缀；施法写入见 system/skill 包。
 package component
 
 import "battle/ecs"

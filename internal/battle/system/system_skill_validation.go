@@ -4,8 +4,8 @@ import (
 	"battle/ecs"
 	"battle/internal/battle/component"
 	"battle/internal/battle/config"
+	"battle/internal/battle/system/action"
 	"battle/internal/battle/system/attrs"
-	"battle/internal/battle/utils"
 )
 
 // CastValidationSystem 统一校验冷却、消耗、状态等
@@ -48,7 +48,7 @@ func (s *CastValidationSystem) Update(dt float64) {
 		}
 
 		// 是否处于控制状态（眩晕、沉默）阻止施法
-		if !utils.CanAct(s.world, e) {
+		if !action.CanAct(s.world, e) {
 			s.world.RemoveComponent(e, &component.SkillCastRequest{})
 			return
 		}

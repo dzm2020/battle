@@ -19,7 +19,7 @@
 
 | 建议 | 说明 |
 |------|------|
-| 对齐 **`component` 与 `utils` 类型假设** | 例如 `Transform2D` 的坐标类型、`Team.Side` 的枚举类型；`TransformXY`、`GetEntityCamp` 等必须与组件定义一致。 |
+| 对齐 **`component` 与 `system/attrs` 类型假设** | 例如 `Transform2D` 的坐标类型、`Team.Side` 的枚举类型；`TransformXY`、`GetEntityCamp` 等必须与组件定义一致。 |
 | **`go build ./...` 进 CI 门禁** | 合并前必过；可先拆阶段：`ecs` → `land` → `config` → `room` → `system` → 全量。 |
 | **类型敏感处减少「隐式转换」** | 距离、排序若需 `float64`，在边界显式转换并单测边界值。 |
 

@@ -2,12 +2,12 @@ package target_sort
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/utils"
+	"battle/internal/battle/system/attrs"
 )
 
 func compareHealthCurrent(w *ecs.World, _ ecs.Entity, a, b ecs.Entity) int {
-	ha := utils.HealthCurrent(w, a)
-	hb := utils.HealthCurrent(w, b)
+	ha := attrs.HealthCurrent(w, a)
+	hb := attrs.HealthCurrent(w, b)
 	switch {
 	case ha < hb:
 		return -1

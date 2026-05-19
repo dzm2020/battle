@@ -53,8 +53,9 @@ internal/battle/
 │   ├── room_bootstrap/     # Bootstrap = Installer + Spawner
 │   ├── entity_factory/     # 出生装配
 │   ├── buff/ skill/ target_selector/
+│   ├── action/ distance/ utils/
 │   └── system_*.go         # 帧管线
-├── pb/ event/ utils/ log/
+├── pb/ event/ log/
 └── README.md
 ```
 
@@ -162,7 +163,6 @@ room_bootstrap ↛ system（Installer 由 system.init 注册）
 | **P1** | 战斗 System（伤害/校验/Buff）缺包内表驱动单测 |
 | **P2** | PVE/PVP 未挂差异化 System |
 | **P2** | `room` 与 `RoomPhase` Resource 的同步关系未在代码中完全体现 |
-| **P3** | `utils` 仍依赖 `system/attrs`，长期可评估是否上移到 `system` 内 |
 
 ### 6.3 构建与测试（2026-05-19）
 

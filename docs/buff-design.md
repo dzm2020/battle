@@ -146,7 +146,7 @@ SpawnSystem → BuffSystem → CooldownSystem → CastValidationSystem → CastS
 
 | 模块 | 路径 |
 |------|------|
-| Buff 切片组件 | `internal/battle/component/buff_list.go` |
+| Buff 切片组件 | `internal/battle/component/comp_buff_list.go` |
 | Stat / 控制外挂组件 | `internal/battle/component/stat_modifiers.go`, `control_state.go` |
 | 合并待结算伤害 | `internal/battle/component/pending_merge.go` |
 | 定义 / 注册表 / Apply / JSON | `internal/battle/buff/` |

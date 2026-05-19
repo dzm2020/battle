@@ -2,12 +2,12 @@ package target_sort
 
 import (
 	"battle/ecs"
-	"battle/internal/battle/utils"
+	"battle/internal/battle/system/distance"
 )
 
 func compareDistanceSquared(w *ecs.World, ref, a, b ecs.Entity) int {
-	da := utils.DistanceSquaredFromRef(w, ref, a)
-	db := utils.DistanceSquaredFromRef(w, ref, b)
+	da := distance.FromRef(w, ref, a)
+	db := distance.FromRef(w, ref, b)
 	switch {
 	case da < db:
 		return -1

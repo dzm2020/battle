@@ -88,7 +88,7 @@
 SpawnSystem → BuffSystem → CooldownSystem → CastValidationSystem → CastStateSystem → DamageSystem → HealSystem → HealthSystem → DeathSystem → BattleEndSystem
 ```
 
-玩法层在本帧调用 `component.RequestSkillCast`（或 `SetSkillCastRequest`）后，`CastValidationSystem` 校验并写入 `SkillCastState`；`CastStateSystem` 推进阶段并触发效果。
+玩法层在本帧调用 `skill.RequestSkillCast`（或 `skill.SetSkillCastRequest`）后，`CastValidationSystem` 校验并写入 `SkillCastState`；`CastStateSystem` 推进阶段并触发效果。
 
 ---
 
@@ -97,7 +97,7 @@ SpawnSystem → BuffSystem → CooldownSystem → CastValidationSystem → CastS
 1. `component.Register(w)`  
 2. 加载技能表 → 单测可用 `system.AddCombatSystems(w)`（含 `BattleInitSystem`）；正式开房由 `room_bootstrap` 挂战斗 System  
 3. 创建单位并挂 `SkillSet`  
-4. **`component.RequestSkillCast(world, caster, skillID, target)`**（唯一施法入口）  
+4. **`skill.RequestSkillCast(world, caster, skillID, target)`**（唯一施法入口）  
 5. `world.Update(dt)` 驱动管线  
 
 ---

@@ -14,10 +14,12 @@
 | `system` | 战斗帧内 Systems、`AddCoreCombatSystems`、注册顺序 |
 | `system/room_bootstrap` | 按副本类型：`Installer` 挂 System + `Spawner` 入队刷怪 |
 | `system/entity_factory` | 从单位表 / PB 创建实体与初始技能、Buff |
-| `system/attrs` | `Attributes` 读写（System / 出生装配使用） |
+| `system/attrs` | `Attributes` 读写与 World 级属性/阵营查询（生命、CampRelation、最终属性值等） |
 | `system/skill` / `buff` / `target_selector` | 战斗规则子域 |
+| `system/action` | 行动资格判定（`CanAct` 等） |
+| `system/distance` | 实体间平面距离（`FromRef`） |
+| `system/utils` | 数值比较与换算常量（`CompareFloat64`、`Thousand` 等） |
 | `pb` | 与客户端/存档对齐的结构体 |
-| `utils` | 通用小工具；**宜保持薄** |
 | `log` / `event` | 日志与事件 |
 
 ## 文档入口
